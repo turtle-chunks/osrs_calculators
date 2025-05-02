@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rock Golem Ore & Drop Rate Calculator</title>
+  <script src="../jspsych/jspsych.js"></script>
+  <script src="../jspsych/plugin-html-keyboard-response.js"></script>
+  <script src="../jspsych/plugin-survey-html-form.js"></script>
+  <script src="../jspsych/plugin-call-function.js"></script>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target {
+      position: relative;
+      height: 100%;
+    }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image {
+      width: 200px;
+      height: auto;
+    }
+    .left-image {
+      transform: scaleX(-1);
+      margin-right: 20px;
+    }
+    .right-image {
+      margin-left: 20px;
+    }
+    .instruction-content {
+      font-size: 1.1em;
+      text-align: center;
+      color: #000;
+    }
+    .instruction-dialog p {
+      margin: 0.8em 0;
+    }
+    .instruction-dialog input,
+    .instruction-dialog select {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 200px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+    .results-table th,
+    .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th {
+      background: #eee;
+    }
+  </style>
+  <script>
+    const createInstructionDialog = content => `
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <img class="side-image left-image" src="../imgs/rock golem.png" alt="rock golem">
+        <div class="instruction-dialog">
+          <div class="instruction-content">
+            ${content}
+          </div>
+        </div>
+        <img class="side-image right-image" src="../imgs/rock golem.png" alt="rock golem">
+      </div>
+    `;
+
+    const jsPsych = initJsPsych();
+
+    const averageDropRates = {
+  "Clay": 1.35e-06,
+  "Copper ore": 1.35e-06,
+  "Tin ore": 1.35e-06,
+  "Iron ore": 1.35e-06,
+  "Silver ore": 1.35e-06,
+  "Coal": 3.47e-06,
+  "Gold ore": 3.4e-06,
+  "Mithril ore": 6.86e-06,
+  "Adamantire ore": 1.759e-05,
+  "Runite ore": 2.506e-05,
+  "Blurite ore": 1.35e-06,
+  "Barronite": 1.35e-06,
+  "Lovakite ore": 4.11e-06,
+  "Gem rock": 4.78e-06,
+  "Amethyst crystals": 2.279e-05,
+  "Crashed star": 1.93e-06,
+  "Motherload mine": 4.09e-06,
+  "Limestone": 1.35e-06,
+  "Calcified rocks": 1.35e-06,
+  "Sandstone": 1.35e-06,
+  "Granite": 1.35e-06,
+  "Ash Pile": 1.35e-06,
+  "Volcanic sulphur": 1.41e-06,
+  "Volcanic mine": 1.738e-05,
+  "Blast mine": 8.26e-06
+};
+
+    let calculationResults;
+    let rockgolemChance;
+
+    const sortedItems = Object.keys(averageDropRates); // .sort() for alphabetical ordering
+
+    const combined_input_trial = {
+      type: jsPsychSurveyHtmlForm,
+      html: createInstructionDialog(`
+        <p><strong>Welcome to the Rock Golem Drop Rate Calculator.</strong></p>
+        <p>Enter the number of each type of Ore you collected.</p>
+        ${sortedItems.map(item => `
+          <div class="item-entry">
+            <span class="item-label">
+              <img class="item-icon" src="../imgs/${item}.png" alt="${item}">
+              ${item}:
+            </span>
+            <input name="${item}" type="number" step="1" min="0" placeholder="0">
+          </div>
+        `).join('')}
+      `),
+      button_label: 'Submit'
+    };
+
+    const calculate_trial = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const raw = jsPsych.data.get().last(1).values()[0].response;
+        const resp = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const results = {};
+        let sum = 0;
+        for (const item of Object.keys(averageDropRates)) {
+          const count = parseFloat(resp[item]) || 0;
+          if (count > 0) {
+            const itemrockgolemChance = count * averageDropRates[item];
+            results[item] = { count, itemrockgolemChance };
+            sum += itemrockgolemChance;
+          }
+        }
+        calculationResults = results;
+        rockgolemChance = sum;
+      }
+    };
+
+    const feedback_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      choices: [],
+      stimulus: () => {
+        if (calculationResults.error) {
+          return createInstructionDialog(`
+            <p>${calculationResults.error}</p>
+            <p><strong>To restart, press F5 on your keyboard.</strong></p>
+          `);
+        }
+        let table = `<table class="results-table">
+          <tr>
+            <th>Ore Type</th>
+            <th>Count</th>
+            <th>rock golem Chance (per Ore)</th>
+          </tr>`;
+        for (const item of Object.keys(calculationResults)) {
+          const stats = calculationResults[item];
+          table += `
+            <tr>
+              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+              <td>${stats.count}</td>
+              <td>${stats.itemrockgolemChance.toFixed(2)}</td>
+            </tr>`;
+        }
+        table += `</table>`;
+        return createInstructionDialog(`
+          <p><strong>Here are your rock golem hunting results:</strong></p>
+          ${table}
+          <p><strong>Your Total rock golem Chance Score: <span style="color:red;">${rockgolemChance.toFixed(2)}</strong></p>
+          <p><strong>To do another calculation, refresh this page (F5).</strong></p>
+        <div style=\"margin-top: 20px;\"><button onclick=\"window.history.back()\" style=\"padding:10px; margin-right:10px;\">⬅ Back</button><button onclick=\"window.location.href='../index.html'\" style=\"padding:10px;\">🏠 Home</button></div>`);
+      }
+    };
+
+    jsPsych.run([
+      combined_input_trial,
+      calculate_trial,
+      feedback_trial
+    ], {
+      display_element: document.getElementById('jspsych-target')
+    });
+  </script>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="../skill-pets.html" style="margin-right: 20px; padding: 10px 20px; background: #e0e0e0; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding: 10px 20px; background: #fdd835; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">🏠 Home</a>
+  </div>
+
+
+  <div style="text-align: center; margin-top: 20px;">
+    <button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button>
+    <button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button>
+  </div>
+</body>
+</html>

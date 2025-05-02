@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>heron fish &amp; Drop Rate Calculator</title>
+<script src="../jspsych/jspsych.js"></script>
+<script src="../jspsych/plugin-html-keyboard-response.js"></script>
+<script src="../jspsych/plugin-survey-html-form.js"></script>
+<script src="../jspsych/plugin-call-function.js"></script>
+<link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+<style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target {
+      position: relative;
+      height: 100%;
+    }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image {
+      width: 200px;
+      height: auto;
+    }
+    .left-image {
+      transform: scaleX(-1);
+      margin-right: 20px;
+    }
+    .right-image {
+      margin-left: 20px;
+    }
+    .instruction-content {
+      font-size: 1.1em;
+      text-align: center;
+      color: #000;
+    }
+    .instruction-dialog p {
+      margin: 0.8em 0;
+    }
+    .instruction-dialog input,
+    .instruction-dialog select {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 200px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+    .results-table th,
+    .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th {
+      background: #eee;
+    }
+  </style>
+<script>
+    const createInstructionDialog = content => `
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <img class="side-image left-image" src="../imgs/heron.png" alt="heron">
+        <div class="instruction-dialog">
+          <div class="instruction-content">
+            ${content}
+          </div>
+        </div>
+        <img class="side-image right-image" src="../imgs/heron.png" alt="heron">
+      </div>
+    `;
+
+    const jsPsych = initJsPsych();
+
+    const averageDropRates = {
+  "shrimps": 2.31112e-06,
+  "anchovies": 2.31112e-06,
+  "karambwanji": 2.26643e-06,
+  "sardines": 1.90286e-06,
+  "herring": 1.90286e-06,
+  "big net fishing": 2.63065e-06,
+  "trout": 2.17707e-06,
+  "salmon": 2.17707e-06,
+  "pike": 3.29688e-06,
+  "rainbow fish": 7.39295e-06,
+  "tuna": 3.91704e-06,
+  "swordfish": 3.91704e-06,
+  "lobster": 8.79863e-06,
+  "aerial fishing": 1.5764e-06,
+  "cave eels": 3.91704e-06,
+  "monkfish": 7.34711e-06,
+  "karambwan": 5.93828e-06,
+  "leaping trout": 2.35583e-06,
+  "leaping salmon": 2.35583e-06,
+  "leaping sturgen": 2.35583e-06,
+  "sharks": 1.25364e-05,
+  "infernal eels": 6.3482e-06,
+  "anglerfish": 1.31278e-05,
+  "minnow": 1.02532e-06,
+  "dark crabs": 6.80462e-06,
+  "sacred eels": 1.036e-05,
+  "fishing trawler": 0.00039604,
+  "guppies": 3.91704e-06,
+  "cavefish": 3.91704e-06,
+  "tetra": 3.91704e-06,
+  "catfish": 3.91704e-06
+};
+
+    let calculationResults;
+    let heronChance;
+
+    const sortedItems = Object.keys(averageDropRates); // .sort() for alphabetical ordering
+
+    const combined_input_trial = {
+      type: jsPsychSurveyHtmlForm,
+      html: createInstructionDialog(`
+        <p><strong>Welcome to the heron Drop Rate Calculator.</strong></p>
+        <p>Enter the number of each type of fish you collected.</p>
+        ${sortedItems.map(item => `
+          <div class="item-entry">
+            <span class="item-label">
+              <img class="item-icon" src="../imgs/${item}.png" alt="${item}">
+              ${item}:
+            </span>
+            <input name="${item}" type="number" step="1" min="0" placeholder="0">
+          </div>
+        `).join('')}
+      `),
+      button_label: 'Submit'
+    };
+
+    const calculate_trial = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const raw = jsPsych.data.get().last(1).values()[0].response;
+        const resp = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const results = {};
+        let sum = 0;
+        for (const item of Object.keys(averageDropRates)) {
+          const count = parseFloat(resp[item]) || 0;
+          if (count > 0) {
+            const itemheronChance = count * averageDropRates[item];
+            results[item] = { count, itemheronChance };
+            sum += itemheronChance;
+          }
+        }
+        calculationResults = results;
+        heronChance = sum;
+      }
+    };
+
+    const feedback_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      choices: [],
+      stimulus: () => {
+        if (calculationResults.error) {
+          return createInstructionDialog(`
+            <p>${calculationResults.error}</p>
+            <p><strong>To restart, press F5 on your keyboard.</strong></p>
+          `);
+        }
+        let table = `<table class="results-table">
+          <tr>
+            <th>fish Type</th>
+            <th>Count</th>
+            <th>heron Chance (per fish)</th>
+          </tr>`;
+        for (const item of Object.keys(calculationResults)) {
+          const stats = calculationResults[item];
+          table += `
+            <tr>
+              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+              <td>${stats.count}</td>
+              <td>${stats.itemheronChance.toFixed(2)}</td>
+            </tr>`;
+        }
+        table += `</table>`;
+        return createInstructionDialog(`
+          <p><strong>Here are your heron hunting results:</strong></p>
+          ${table}
+          <p><strong>Your Total heron Chance Score: <span style="color:red;">${heronChance.toFixed(2)}</strong></p>
+          <p><strong>To do another calculation, refresh this page (F5).</strong></p>
+        <div style=\"margin-top: 20px;\"><button onclick=\"window.history.back()\" style=\"padding:10px; margin-right:10px;\">⬅ Back</button><button onclick=\"window.location.href='../index.html'\" style=\"padding:10px;\">🏠 Home</button></div>`);
+      }
+    };
+
+    jsPsych.run([
+      combined_input_trial,
+      calculate_trial,
+      feedback_trial
+    ], {
+      display_element: document.getElementById('jspsych-target')
+    });
+  </script>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="../skill-pets.html" style="margin-right: 20px; padding: 10px 20px; background: #e0e0e0; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding: 10px 20px; background: #fdd835; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">🏠 Home</a>
+  </div>
+
+
+  <div style="text-align: center; margin-top: 20px;">
+    <button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button>
+    <button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button>
+  </div>
+</body>
+</html>
