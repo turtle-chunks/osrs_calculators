@@ -1,0 +1,447 @@
+
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>Hill Giant Drop Calculator</title>
+<script src="../jspsych/jspsych.js"></script>
+<script src="../jspsych/plugin-html-keyboard-response.js"></script>
+<script src="../jspsych/plugin-survey-html-form.js"></script>
+<script src="../jspsych/plugin-call-function.js"></script>
+<link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+<style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input,
+    .instruction-dialog select {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 200px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th { background: #eee; }
+  </style>
+<script>
+    const averageDropRates = {
+  "Big bones": [
+    1.0,
+    "1"
+  ],
+  "Giant key": [
+    0.0078125,
+    "1/128"
+  ],
+  "Giant key (Wildy)": [
+    0.015625,
+    "1/64"
+  ],
+  "Iron med helm": [
+    0.0390625,
+    "1/25.6"
+  ],
+  "Iron dagger": [
+    0.03125,
+    "1/32"
+  ],
+  "Iron kiteshield": [
+    0.023435669,
+    "1/42.67"
+  ],
+  "Steel scimitar": [
+    0.015625,
+    "1/64"
+  ],
+  "Iron arrow": [
+    0.140646976,
+    "1/21.33"
+  ],
+  "Fire rune": [
+    0.351535036,
+    "1/42.67"
+  ],
+  "Water rune": [
+    0.164049684,
+    "1/42.67"
+  ],
+  "Law rune": [
+    0.046871338,
+    "1/42.67"
+  ],
+  "Steel arrow": [
+    0.15625,
+    "1/64"
+  ],
+  "Mind rune": [
+    0.046875,
+    "1/64"
+  ],
+  "Cosmic rune": [
+    0.03125,
+    "1/64"
+  ],
+  "Nature rune": [
+    0.09375,
+    "1/64"
+  ],
+  "Chaos rune": [
+    0.015625,
+    "1/128"
+  ],
+  "Death rune": [
+    0.015625,
+    "1/128"
+  ],
+  "Coins": [
+    6.754214788,
+    "Varies"
+  ],
+  "Limpwurt root": [
+    0.085910653,
+    "1/11.4"
+  ],
+  "Beer": [
+    0.046882325,
+    "1/21.33"
+  ],
+  "Body talisman": [
+    0.015625,
+    "1/64"
+  ],
+  "Ensouled giant head": [
+    0.04,
+    "1/25"
+  ],
+  "Long bone": [
+    0.0025,
+    "1/400"
+  ],
+  "Curved bone": [
+    0.000199481,
+    "1/5013"
+  ],
+  "Giant champion scroll": [
+    0.0002,
+    "1/5000"
+  ],
+  "Beginner": [
+    0.02,
+    "1/50"
+  ],
+  "Grimy guam leaf": [
+    0.013679891,
+    "1/73.1"
+  ],
+  "Grimy marrentill": [
+    0.01025641,
+    "1/97.5"
+  ],
+  "Grimy Tarromin": [
+    0.007692308,
+    "1/130"
+  ],
+  "Grimy harralander": [
+    0.005980861,
+    "1/167.2"
+  ],
+  "Grimy ranarr weed": [
+    0.004699248,
+    "1/212.8"
+  ],
+  "Grimy irit leaf": [
+    0.003417635,
+    "1/292.6"
+  ],
+  "Grimy aventoe": [
+    0.002563445,
+    "1/390.1"
+  ],
+  "Grimy kwuarm": [
+    0.002136296,
+    "1/468.1"
+  ],
+  "Grimy cadantine": [
+    0.00170911,
+    "1/585.1"
+  ],
+  "Grimy lantadyme": [
+    0.001281723,
+    "1/780.2"
+  ],
+  "Grimy dwarf weed": [
+    0.001281723,
+    "1/780.2"
+  ],
+  "Potato seed": [
+    0.210526316,
+    "1/19"
+  ],
+  "Onion seed": [
+    0.16,
+    "1/25"
+  ],
+  "Cabbage seed": [
+    0.105263158,
+    "1/38"
+  ],
+  "Tomato seed": [
+    0.038961039,
+    "1/77"
+  ],
+  "Sweetcorn seed": [
+    0.019354839,
+    "1/155"
+  ],
+  "Strawberry seed": [
+    0.006430868,
+    "1/311"
+  ],
+  "Watermelon seed": [
+    0.003072197,
+    "1/651"
+  ],
+  "Snape grass seed": [
+    0.002232143,
+    "1/896"
+  ],
+  "Uncut sapphire": [
+    0.005858231,
+    "1/170.7"
+  ],
+  "Uncut emerald": [
+    0.002929974,
+    "1/341.3"
+  ],
+  "Uncut ruby": [
+    0.001464772,
+    "1/682.7"
+  ],
+  "Chaos talisman": [
+    0.000549451,
+    "1/1820"
+  ],
+  "Nature talisman": [
+    0.000549451,
+    "1/1820"
+  ],
+  "Uncut diamond": [
+    0.000366166,
+    "1/2731"
+  ],
+  "Loop half of key": [
+    0.000183117,
+    "1/5461"
+  ],
+  "Tooth half of key": [
+    0.000183117,
+    "1/5461"
+  ],
+  "Rune javelin": [
+    0.000915583,
+    "1/5461"
+  ],
+  "Rune spear": [
+    1.14441e-05,
+    "1/87381"
+  ],
+  "Shield left half": [
+    5.72203e-06,
+    "1/174763"
+  ],
+  "Dragon spear": [
+    4.29153e-06,
+    "1/233017"
+  ],
+  "Uncut sapphire (ROW)": [
+    0.011534025,
+    "1/86.7"
+  ],
+  "Uncut emerald (ROW)": [
+    0.005780347,
+    "1/173"
+  ],
+  "Uncut ruby (ROW)": [
+    0.002881844,
+    "1/347"
+  ],
+  "Chaos talisman (ROW)": [
+    0.001082251,
+    "1/924"
+  ],
+  "Nature talisman (ROW)": [
+    0.001082251,
+    "1/924"
+  ],
+  "Uncut diamond (ROW)": [
+    0.000720981,
+    "1/1387"
+  ],
+  "Loop half of key (ROW)": [
+    0.00036062,
+    "1/2773"
+  ],
+  "Tooth half of key (ROW)": [
+    0.00036062,
+    "1/2773"
+  ],
+  "Rune javelin (ROW)": [
+    0.001803101,
+    "1/2773"
+  ],
+  "Rune spear (ROW)": [
+    0.000192308,
+    "1/5200"
+  ],
+  "Shield left half (ROW)": [
+    9.61538e-05,
+    "1/10400"
+  ],
+  "Dragon spear (ROW)": [
+    7.21137e-05,
+    "1/13867"
+  ]
+};
+
+    const orderedItems = Object.keys(averageDropRates);
+    let calculationResults;
+
+    const createInstructionDialog = content => `
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <img class="side-image left-image" src="../imgs/Hill giant plateau.png" alt="Hill giant plateau">
+        <div class="instruction-dialog"><div class="instruction-content">${content}</div></div>
+        <img class="side-image right-image" src="../imgs/Hill giant plateau.png" alt="Hill giant plateau">
+      </div>`;
+
+    const jsPsych = initJsPsych();
+
+    const combined_input_trial = {
+      type: jsPsychSurveyHtmlForm,
+      html: createInstructionDialog(`
+        <p><strong>Welcome to the Kill & Drop Rate Calculator.</strong></p>
+        <p>Please enter your overall kills and how many of each item you obtained.</p>
+        <div class="item-entry">
+          <strong>Overall Kills:</strong>
+          <input name="kills" type="number" step="1" min="1" placeholder="e.g. 1000" required>
+        </div>
+        ${orderedItems.map(item => `
+          <div class="item-entry">
+            <span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}:</span>
+            <input name="${item}" type="number" step="1" min="0" placeholder="0">
+          </div>`).join('')}
+      `),
+      button_label: 'Submit'
+    };
+
+    const calculate_trial = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const raw = jsPsych.data.get().last(1).values()[0].response;
+        const resp = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const kills = parseFloat(resp.kills);
+        if (isNaN(kills) || kills <= 0) {
+          calculationResults = { error: 'Please enter a valid positive number of kills.' };
+          return;
+        }
+        const results = {};
+        for (const item of orderedItems) {
+          const [avgDrop, _] = averageDropRates[item];
+          const count = parseFloat(resp[item]) || 0;
+          const dropRate = count / kills;
+          const perDrop = count > 0 ? kills / count : Infinity;
+          const relative = dropRate / avgDrop;
+          results[item] = { count, dropRate, perDrop, relative };
+        }
+        calculationResults = results;
+      }
+    };
+
+    const feedback_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      choices: [],
+      stimulus: () => {
+        if (calculationResults.error) {
+          return createInstructionDialog(`<p>${calculationResults.error}</p><p><strong>To restart, please press F5 on your keyboard.</strong></p>`);
+        }
+        let table = `<table class="results-table">
+          <tr><th>Item</th><th>Your Drop Rate</th><th>Kills per Item</th><th>Relative Rate</th><th>Comparison</th><th>Official Rate</th></tr>`;
+          for (const item of orderedItems) {
+            const stats = calculationResults[item];
+            if (stats.count === 0) continue; // <-- Skip if user didn't enter anything
+            const [_, officialRateStr] = averageDropRates[item];
+            const dr = stats.dropRate.toFixed(4);
+            const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
+            const rr = stats.relative.toFixed(4);
+            let cmp = '–';
+            if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
+            else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
+            table += `<tr>
+              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+              <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
+            </tr>`;
+          }
+        table += `</table>`;
+        return createInstructionDialog(`
+        <p><strong>Here are your results:</strong></p>${table}<p><strong>To do another calculation, press F5 on your keyboard to refresh this page.</strong></p>
+        <div style=\"margin-top: 20px;\"><button onclick=\"window.history.back()\" style=\"padding:10px; margin-right:10px;\">⬅ Back</button><button onclick=\"window.location.href='../index.html'\" style=\"padding:10px;\">🏠 Home</button></div>`);
+      }
+    };
+
+    jsPsych.run([combined_input_trial, calculate_trial, feedback_trial], {
+      display_element: document.getElementById('jspsych-target')
+    });
+  </script>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="../skill-pets.html" style="margin-right: 20px; padding: 10px 20px; background: #e0e0e0; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding: 10px 20px; background: #fdd835; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">🏠 Home</a>
+  </div>
+
+
+  <div style="text-align: center; margin-top: 20px;">
+    <button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button>
+    <button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button>
+  </div>
+
+</body>
+</html>
