@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fletching Time & Experience Calculator</title>
+  <script src="../jspsych/jspsych.js"></script>
+  <script src="../jspsych/plugin-html-keyboard-response.js"></script>
+  <script src="../jspsych/plugin-survey-html-form.js"></script>
+  <script src="../jspsych/plugin-call-function.js"></script>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input, .instruction-dialog select {
+      padding: 5px; font-size: 1em; margin-top: 5px; width: 100%; max-width: 200px;
+    }
+    .item-entry { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
+    .item-label { display: flex; align-items: center; gap: 6px; min-width: 200px; text-align: right; justify-content: flex-end; }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td { border: 1px solid #bbb; padding: 6px; font-size: 0.95em; }
+    .results-table th { background: #eee; }
+  </style>
+  <script>
+    const createInstructionDialog = content => `
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <img class="side-image left-image" src="../imgs/Fletching cape.png" alt="Fletching">
+        <div class="instruction-dialog">
+          <div class="instruction-content">
+            ${content}
+          </div>
+        </div>
+        <img class="side-image right-image" src="../imgs/Fletching cape.png" alt="Fletching">
+      </div>
+    `;
+
+    const jsPsych = initJsPsych();
+
+    // XP per bow type (internal lookup)
+    const fletchingXp = {
+      "Shortbow (u)": 5,
+      "Longbow (u)": 10,
+      "Oak shortbow (u)": 16.5,
+      "Oak longbow (u)": 25,
+      "Willow shortbow (u)": 33.3,
+      "Willow longbow (u)": 41.5,
+      "Maple shortbow (u)": 50,
+      "Maple longbow (u)": 58.3,
+      "Yew shortbow (u)": 67.5,
+      "Yew longbow (u)": 75,
+      "Magic shortbow (u)": 83.3,
+      "Magic longbow (u)": 91.5
+    };
+    const timePerMode = {
+      unstrung: 2.117647,
+      strung:    1.5
+    };
+
+    const sortedItems = Object.keys(fletchingXp);
+
+    const combined_input_trial = {
+      type: jsPsychSurveyHtmlForm,
+      html: createInstructionDialog(`
+        <p><strong>Welcome to the Fletching Time & Experience Calculator.</strong></p>
+        <p>Select the bow mode, enter the number of each bow type you plan to make and your intended hours per day of play.</p>
+        <div class="item-entry">
+          <span class="item-label"><strong>Mode:</strong></span>
+          <select name="mode">
+            <option value="unstrung">Unstrung bows (from logs)</option>
+            <option value="strung">Strung bows (add string)</option>
+          </select>
+        </div>
+        <div class="item-entry">
+          <span class="item-label"><strong>Hours per day:</strong></span>
+          <input name="hoursPerDay" type="number" step="0.1" min="0" value="24">
+        </div>
+        ${sortedItems.map(item => `
+          <div class="item-entry">
+            <span class="item-label">
+              <img class="item-icon" src="../imgs/${item}.png" alt="${item}">
+              ${item}:
+            </span>
+            <input name="${item}" type="number" step="1" min="0" placeholder="0">
+          </div>
+        `).join('')}
+      `),
+      button_label: 'Submit'
+    };
+
+    let calculationResults;
+
+    const calculate_trial = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const raw = jsPsych.data.get().last(1).values()[0].response;
+        const resp = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const results = {};
+        let totalHours = 0;
+        let totalDays = 0;
+        const hoursPerDay = parseFloat(resp.hoursPerDay) || 24;
+        const mode = resp.mode || 'unstrung';
+        const secPerBow = timePerMode[mode];
+
+        for (const item of sortedItems) {
+          const count = parseFloat(resp[item]) || 0;
+          if (count > 0) {
+            const xp = fletchingXp[item];
+            const experience = count * xp;
+            const hours = (count * secPerBow) / 3600;
+            const expPerHour = experience / hours;
+            const days = hours / hoursPerDay;
+            results[item] = { count, experience, expPerHour, hours, days };
+            totalHours += hours;
+            totalDays += days;
+          }
+        }
+        calculationResults = { results, totalHours, totalDays, hoursPerDay, mode};
+      }
+    };
+
+    const feedback_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      choices: [],
+      stimulus: () => {
+        const { results, totalHours, totalDays, hoursPerDay, mode } = calculationResults;
+        let table = `<table class="results-table">
+          <tr>
+            <th>Bow Type</th>
+            <th>Bows Made</th>
+            <th>Experience</th>
+            <th>XP / Hour</th>
+            <th>Hours</th>
+            <th>Days</th>
+          </tr>`;
+        for (const item in results) {
+          const r = results[item];
+          table += `
+            <tr>
+              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+              <td>${r.count}</td>
+              <td>${r.experience.toFixed(2)}</td>
+              <td>${r.expPerHour.toFixed(2)}</td>
+              <td>${r.hours.toFixed(2)}</td>
+              <td>${r.days.toFixed(2)}</td>
+            </tr>`;
+        }
+        table += `</table>`;
+        return createInstructionDialog(`
+          <p><strong>Fletching Results (${mode === 'unstrung' ? 'Unstrung' : 'Strung'} mode, ${hoursPerDay}h/day):</strong></p>
+          ${table}
+          <p><strong>Total Hours: <span style="color:red;">${totalHours.toFixed(2)}</strong></p>
+          <p><strong>Total Days: <span style="color:red;">${totalDays.toFixed(2)}</strong></p>
+          <p><strong>To calculate again, refresh this page.</strong></p>
+          <div style=\"margin-top: 20px;\"><button onclick=\"window.history.back()\" style=\"padding:10px; margin-right:10px;\">⬅ Back</button><button onclick=\"window.location.href='../index.html'\" style=\"padding:10px;\">🏠 Home</button></div>`);
+      }
+    };
+
+    jsPsych.run([
+      combined_input_trial,
+      calculate_trial,
+      feedback_trial
+    ], { display_element: document.getElementById('jspsych-target') });
+  </script>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div style="text-align:center; margin-top:30px;">
+    <a href="../skill-experience.html" style="margin-right:20px; padding:10px 20px; background:#e0e0e0; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding:10px 20px; background:#fdd835; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">🏠 Home</a>
+  </div>
+</body>
+</html>
