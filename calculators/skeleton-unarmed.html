@@ -180,20 +180,21 @@
         }
         let table = `<table class="results-table">
           <tr><th>Item</th><th>Your Drop Rate</th><th>Kills per Item</th><th>Relative Rate</th><th>Comparison</th><th>Official Rate</th></tr>`;
-        for (const item of orderedItems) {
-          const stats = calculationResults[item];
-          const [_, officialRateStr] = averageDropRates[item];
-          const dr = stats.dropRate.toFixed(4);
-          const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
-          const rr = stats.relative.toFixed(4);
-          let cmp = '–';
-          if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
-          else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
-          table += `<tr>
-            <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
-            <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
-          </tr>`;
-        }
+          for (const item of orderedItems) {
+            const stats = calculationResults[item];
+            if (stats.count === 0) continue; // Skip if no user input for this item
+            const [_, officialRateStr] = averageDropRates[item];
+            const dr = stats.dropRate.toFixed(4);
+            const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
+            const rr = stats.relative.toFixed(4);
+            let cmp = '–';
+            if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
+            else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
+            table += `<tr>
+              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+              <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
+            </tr>`;
+          }
         table += `</table>`;
         return createInstructionDialog(`
         <p><strong>Here are your results:</strong></p>${table}<p><strong>To do another calculation, press F5 on your keyboard to refresh this page.</strong></p>
