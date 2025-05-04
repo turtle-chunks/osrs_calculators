@@ -113,6 +113,7 @@
         const results = {};
         let totalHours = 0;
         let totalDays = 0;
+        let totalExperience = 0;
         const hoursPerDay = parseFloat(resp.hoursPerDay) || 24;
         const mode = resp.mode || 'unstrung';
         const secPerBow = timePerMode[mode];
@@ -128,9 +129,10 @@
             results[item] = { count, experience, expPerHour, hours, days };
             totalHours += hours;
             totalDays += days;
+            totalExperience += experience;
           }
         }
-        calculationResults = { results, totalHours, totalDays, hoursPerDay, mode};
+        calculationResults = { results, totalHours, totalDays, totalExperience, hoursPerDay, mode};
       }
     };
 
@@ -138,7 +140,7 @@
       type: jsPsychHtmlKeyboardResponse,
       choices: [],
       stimulus: () => {
-        const { results, totalHours, totalDays, hoursPerDay, mode } = calculationResults;
+        const { results, totalHours, totalDays, totalExperience, hoursPerDay, mode } = calculationResults;
         let table = `<table class="results-table">
           <tr>
             <th>Bow Type</th>
@@ -166,6 +168,7 @@
           ${table}
           <p><strong>Total Hours: <span style="color:red;">${totalHours.toFixed(2)}</strong></p>
           <p><strong>Total Days: <span style="color:red;">${totalDays.toFixed(2)}</strong></p>
+          <p><strong>Total Experience: <span style="color:red;">${totalExperience.toFixed(2)}</strong></p>
           <p><strong>To calculate again, refresh this page.</strong></p>
           <div style=\"margin-top: 20px;\"><button onclick=\"window.history.back()\" style=\"padding:10px; margin-right:10px;\">⬅ Back</button><button onclick=\"window.location.href='../index.html'\" style=\"padding:10px;\">🏠 Home</button></div>`);
       }
