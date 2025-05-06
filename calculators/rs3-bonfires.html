@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Runescape 3 Bonfire Calculator</title>
+  <script src="../jspsych/jspsych.js"></script>
+  <script src="../jspsych/plugin-html-keyboard-response.js"></script>
+  <script src="../jspsych/plugin-survey-html-form.js"></script>
+  <script src="../jspsych/plugin-call-function.js"></script>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../rs3imgs/rs3-title.jpg') no-repeat center center fixed;
+      background-size: cover;
+      font-family: sans-serif;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input { padding: 5px; font-size: 1em; margin-top: 5px; width: 100%; max-width: 200px; }
+    .item-entry { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
+    .item-label { min-width: 180px; text-align: right; font-weight: bold; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td { border: 1px solid #bbb; padding: 6px; font-size: 0.95em; }
+    .results-table th { background: #eee; }
+  </style>
+  <script>
+    // Bonfire XP per log
+    const bonfireXp = {
+      normal:    50.00,
+      oak:       85.00,
+      willow:    105.00,
+      teak:      120.00,
+      maple:     130.00,
+      mahogany:  180.00,
+      yew:       220.00,
+      magic:     309.50,
+      elder:     449.00
+    };
+    // Seconds it takes to burn one log at a bonfire
+    const secPerLog = {
+      normal:    6.60,
+      oak:       4.20,
+      willow:    4.20,
+      teak:      3.60,
+      maple:     3.60,
+      mahogany:  3.60,
+      yew:       3.60,
+      magic:     3.60,
+      elder:     3.60
+    };
+    const sortedLogs = ['normal','oak','willow','teak','maple','mahogany','yew','magic','elder'];
+    // Format numbers with commas and fixed decimals
+    function fmt(num, decimals) {
+      return num.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+    
+    const createInstructionDialog = content => `
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <img class="side-image left-image" src="../rs3imgs/Firemaking cape.png" alt="Firemaking cape">
+        <div class="instruction-dialog">
+          <div class="instruction-content">
+            ${content}
+          </div>
+        </div>
+        <img class="side-image right-image" src="../rs3imgs/Firemaking cape.png" alt="Firemaking cape">
+      </div>
+    `;
+
+    const jsPsych = initJsPsych();
+
+    const input_trial = {
+      type: jsPsychSurveyHtmlForm,
+      html: createInstructionDialog(`
+        <p><strong>Welcome to the Runescape 3 Bonfire Calculator.</strong></p>
+        <p>Enter the number of each log you'd like to burn and your intended hours per day of play.</p>
+        <div class="item-entry">
+          <span class="item-label">Hours per day:</span>
+          <input name="hoursPerDay" type="number" step="0.1" min="0" value="24">
+        </div>
+        ${sortedLogs.map(log => `
+          <div class="item-entry">
+            <span class="item-label">${log.charAt(0).toUpperCase() + log.slice(1)} logs:</span>
+            <input name="${log}" type="number" step="1" min="0" placeholder="0">
+          </div>
+        `).join('')}
+      `),
+      button_label: 'Calculate'
+    };
+
+    let resultsData;
+
+    const calc_trial = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const raw = jsPsych.data.get().last(1).values()[0].response;
+        const resp = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const hoursPerDay = parseFloat(resp.hoursPerDay) || 24;
+        let totalLogs = 0, totalXP = 0, totalHours = 0, totalDays = 0;
+        const logs = {};
+        for (const log of sortedLogs) {
+          const count = parseInt(resp[log]) || 0;
+          if (count > 0) {
+            const xpPer  = bonfireXp[log];
+            const xp     = count * xpPer;
+            const hrs    = count * secPerLog[log] / 3600;
+            const days   = hrs / hoursPerDay;
+            logs[log] = { count, xp, xpPer, hrs, days };
+            totalLogs += count;
+            totalXP   += xp;
+            totalHours+= hrs;
+            totalDays += days;
+          }
+        }
+        resultsData = { logs, totalLogs, totalXP, totalHours, totalDays, hoursPerDay };
+      }
+    };
+
+    const output_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      choices: [],
+      stimulus: () => {
+        const { logs, totalLogs, totalXP, totalHours, totalDays, hoursPerDay } = resultsData;
+        let table = `<table class="results-table">
+          <tr>
+            <th>Log Type</th>
+            <th>Burned</th>
+            <th>XP Gained</th>
+            <th>XP/Hour</th>
+            <th>Hours</th>
+            <th>Days</th>
+          </tr>`;
+        for (const log in logs) {
+          const r = logs[log];
+          table += `
+            <tr>
+              <td>${log.charAt(0).toUpperCase() + log.slice(1)}</td>
+              <td>${fmt(r.count, 0)}</td>
+              <td>${fmt(r.xp, 2)}</td>
+              <td>${fmt(r.xp / r.hrs, 2)}</td>
+              <td>${fmt(r.hrs, 2)}</td>
+              <td>${fmt(r.days, 2)}</td>
+            </tr>`;
+        }
+        table += `</table>`;
+        return createInstructionDialog(`
+          <p><strong>Results (Burn ${fmt(hoursPerDay,1)}h/day):</strong></p>
+          ${table}
+          <p><strong>Total Logs:</strong> ${fmt(totalLogs, 0)}</p>
+          <p><strong>Total XP:</strong> ${fmt(totalXP, 2)}</p>
+          <p><strong>Total Hours:</strong> ${fmt(totalHours, 2)}</p>
+          <p><strong>Total Days:</strong> ${fmt(totalDays, 2)}</p>
+          <p><strong>Refresh to calculate again.</strong></p>
+          <div style="margin-top:20px;"><button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button><button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button></div>
+        `);
+      }
+    };
+
+    jsPsych.run([ input_trial, calc_trial, output_trial ], { display_element: document.getElementById('jspsych-target') });
+  </script>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div style="text-align:center; margin-top:30px;">
+    <a href="../skill-experience.html" style="margin-right:20px; padding:10px 20px; background:#e0e0e0; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding:10px 20px; background:#fdd835; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">🏠 Home</a>
+  </div>
+</body>
+</html>
