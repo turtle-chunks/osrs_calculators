@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hill Giant Drop-Rate Calculator</title>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input { padding: 5px; font-size: 1em; margin-top: 5px; width: 100%; max-width: 300px; }
+    .item-entry { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
+    .item-label { display: flex; align-items: center; gap: 6px; min-width: 200px; text-align: right; justify-content: flex-end; }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td { border: 1px solid #bbb; padding: 6px; font-size: 0.95em; }
+    .results-table th { background: #eee; }
+  </style>
+</head>
+<body>
+  <div id="jspsych-target">
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <img class="side-image left-image" src="../imgs/Hill giant.png" alt="Hill giant">
+      <div class="instruction-dialog">
+        <div class="instruction-content">
+          <p><strong>Hill Giant Drop-Rate Calculator</strong></p>
+          <p>Please upload your Looter Log <code>.log</code> file below.<br>
+             I’ll auto-extract your Hill Giant kills &amp; drops and compute your rates.</p>
+          <div class="item-entry">
+            <input type="file" id="logFileInput" accept=".log,.txt" required>
+          </div>
+        </div>
+      </div>
+      <img class="side-image right-image" src="../imgs/Hill giant.png" alt="Hill giant">
+    </div>
+  </div>
+
+  <script>
+    // 1) Official averages for Hill Giant
+    const averageDropRates = {
+      "Big bones": [1.0, "1"],
+      "Giant key": [0.0078125, "1/128"],
+      "Giant key (Wildy)": [0.015625, "1/64"],
+      "Iron full helm": [0.0390625, "1/25.6"],
+      "Iron dagger": [0.03125, "1/32"],
+      "Iron kiteshield": [0.023435669, "1/42.67"],
+      "Steel longsword": [0.015625, "1/64"],
+      "Iron arrow": [0.140646976, "1/21.33"],
+      "Fire rune": [0.351535036, "1/42.67"],
+      "Water rune": [0.164049684, "1/42.67"],
+      "Law rune": [0.046871338, "1/42.67"],
+      "Steel arrow": [0.15625, "1/64"],
+      "Mind rune": [0.046875, "1/64"],
+      "Cosmic rune": [0.03125, "1/64"],
+      "Nature rune": [0.09375, "1/64"],
+      "Chaos rune": [0.015625, "1/128"],
+      "Death rune": [0.015625, "1/128"],
+      "Coins": [6.754214788, "Varies"],
+      "Limpwurt root": [0.085910653, "1/11.4"],
+      "Beer": [0.046882325, "1/21.33"],
+      "Body talisman": [0.015625, "1/64"],
+      "Ensouled giant head": [0.04, "1/25"],
+      "Long bone": [0.0025, "1/400"],
+      "Curved bone": [0.000199481, "1/5013"],
+      "Giant champion scroll": [0.0002, "1/5000"],
+      "Clue scroll (beginner)": [0.02, "1/50"],
+      "Looting bag": [0.2, "1/5"],
+      "Slayer's enchantment": [0.003424658, "1/292"],
+      "Larran's key": [0.001097695, "1/911"],
+      "Grimy guam leaf": [0.013679891, "1/73.1"],
+      "Grimy marrentill": [0.01025641, "1/97.5"],
+      "Grimy Tarromin": [0.007692308, "1/130"],
+      "Grimy harralander": [0.005980861, "1/167.2"],
+      "Grimy ranarr weed": [0.004699248, "1/212.8"],
+      "Grimy irit leaf": [0.003417635, "1/292.6"],
+      "Grimy aventoe": [0.002563445, "1/390.1"],
+      "Grimy kwuarm": [0.002136296, "1/468.1"],
+      "Grimy cadantine": [0.00170911, "1/585.1"],
+      "Grimy lantadyme": [0.001281723, "1/780.2"],
+      "Grimy dwarf weed": [0.001281723, "1/780.2"],
+      "Potato seed": [0.210526316, "1/19"],
+      "Onion seed": [0.16, "1/25"],
+      "Cabbage seed": [0.105263158, "1/38"],
+      "Tomato seed": [0.038961039, "1/77"],
+      "Sweetcorn seed": [0.019354839, "1/155"],
+      "Strawberry seed": [0.006430868, "1/311"],
+      "Watermelon seed": [0.003072197, "1/651"],
+      "Snape grass seed": [0.002232143, "1/896"],
+      "Uncut sapphire": [0.005858231, "1/170.7"],
+      "Uncut emerald": [0.002929974, "1/341.3"],
+      "Uncut ruby": [0.001464772, "1/682.7"],
+      "Chaos talisman": [0.000549451, "1/1820"],
+      "Nature talisman": [0.000549451, "1/1820"],
+      "Uncut diamond": [0.000366166, "1/2731"],
+      "Loop half of key": [0.000183117, "1/5461"],
+      "Tooth half of key": [0.000183117, "1/5461"],
+      "Rune javelin": [0.000915583, "1/5461"],
+      "Rune spear": [1.14441e-05, "1/87381"],
+      "Shield left half": [5.72203e-06, "1/174763"],
+      "Dragon spear": [4.29153e-06, "1/233017"]
+    };
+    const orderedItems = Object.keys(averageDropRates);
+
+    // 2) Aggregator: extract Hill Giant outcomes
+    function extractOutcomesFromLogContent(content) {
+      const lines = content.split(/\r?\n/).filter(l => l.trim());
+      const records = lines.map(l => JSON.parse(l));
+      const summary = {};
+      records.forEach(e => {
+        const mon = e.name;
+        if (!mon.toLowerCase().includes('hill giant')) return;
+        summary[mon] ||= { kills: 0, drops: {} };
+        summary[mon].kills += 1;
+        e.drops.forEach(d => {
+          summary[mon].drops[d.name] = (summary[mon].drops[d.name] || 0) + d.quantity;
+        });
+      });
+      return Object.entries(summary).map(([name, {kills, drops}]) => ({ name, kills, drops }));
+    }
+
+    function parseLogFile(file) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try { res(extractOutcomesFromLogContent(e.target.result)); }
+          catch(err) { rej(err); }
+        };
+        reader.onerror = () => rej(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    // 3) Render results
+    function showResults(entry) {
+      const { name, kills, drops } = entry;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      let html = `<p><strong>You killed ${name} ${kills.toLocaleString()} times</strong></p>`;
+      html += `<table class="results-table">
+        <tr><th>Item</th><th>Your Rate</th><th>Kills/Item</th><th>Rel. Rate</th><th>Δ vs Official</th><th>Official</th></tr>`;
+      orderedItems.forEach(item => {
+        const [avg, avgStr] = averageDropRates[item];
+        const cnt = drops[item] || 0;
+        if (!cnt) return;
+        const dr = cnt / kills;
+        const pd = kills / cnt;
+        const rel = dr / avg;
+        let delta = '–';
+        if (rel > 1) delta = `+${((rel - 1) * 100).toFixed(1)}%`;
+        else if (rel < 1) delta = `–${((1 - rel) * 100).toFixed(1)}%`;
+        html += `<tr>
+          <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+          <td>${dr.toFixed(4)}</td><td>${pd.toFixed(2)}</td><td>${rel.toFixed(3)}</td><td>${delta}</td><td>${avgStr}</td>
+        </tr>`;
+      });
+      html += `</table><p><strong>Refresh to run again.</strong></p>`;
+      dialog.innerHTML = html;
+    }
+
+    // 4) Wire file input → parse → render
+    document.getElementById('logFileInput').addEventListener('change', e => {
+      const file = e.target.files[0]; if (!file) return;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      dialog.innerHTML = `<p>Parsing log…</p>`;
+      parseLogFile(file).then(outcomes => {
+        if (outcomes.length === 0) {
+          dialog.innerHTML = `<p class="error">No Hill Giant entries found in log.</p>`;
+        } else {
+          showResults(outcomes[0]);
+        }
+      }).catch(err => {
+        dialog.innerHTML = `<p class="error">Error parsing log: ${err.message}</p>`;
+        console.error(err);
+      });
+    });
+  </script>
+</body>
+</html>
