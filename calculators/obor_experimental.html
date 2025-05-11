@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Obor Drop-Rate Calculator</title>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 300px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th { background: #eee; }
+  </style>
+</head>
+<body>
+  <div id="jspsych-target">
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <img class="side-image left-image" src="../imgs/Obor.png" alt="Obor">
+      <div class="instruction-dialog">
+        <div class="instruction-content">
+          <p><strong>Obor Drop-Rate Calculator</strong></p>
+          <p>Please upload your Looter Log <code>.log</code> file below.<br>
+             I’ll auto-extract your Obor kills &amp; drops and compute your rates.</p>
+          <div class="item-entry">
+            <input type="file" id="logFileInput" accept=".log,.txt" required>
+          </div>
+        </div>
+      </div>
+      <img class="side-image right-image" src="../imgs/Obor.png" alt="Obor">
+    </div>
+  </div>
+
+  <script>
+    // ——————————————————————————————————————————————
+    // 1) Official averages for Obor (from Obor Drop Calculator)
+    // ——————————————————————————————————————————————
+    const averageDropRates = {
+      "Big bones": [1, "Always"],
+      "Beginner": [1, "Always"],
+      "Ensouled giant head": [1, "Always"],
+      "Rune med helm": [0.050838841, "1/19.67"],
+      "Rune full helm": [0.042372881, "1/23.6"],
+      "Rune longsword": [0.042372881, "1/23.6"],
+      "Rune battleaxe": [0.033898305, "1/29.5"],
+      "Rune kiteshield": [0.025425884, "1/39.33"],
+      "Rune chainbody": [0.025425884, "1/39.33"],
+      "Rune platelegs": [0.025425884, "1/39.33"],
+      "Rune plateskirt": [0.025425884, "1/39.33"],
+      "Rune 2h sword": [0.025425884, "1/39.33"],
+      "Hill giant club": [0.008474576, "1/118"],
+      "+Law rune+": [7.525678837, "1/9.833"],
+      "+Cosmic rune+": [9.051154276, "1/9.833"],
+      "Chaos rune": [12.62711864, "1/11.8"],
+      "+Death rune+": [5, "1/11.8"],
+      "+Nature rune+": [3.49940688, "1/16.86"],
+      "Limpwurt root": [1.355932203, "1/14.75"],
+      "Big bones (50 noted)": [3.389830508, "1/14.75"],
+      "+Coins+": [1177.858392, "Varies"],
+      "Uncut ruby": [0.211864407, "1/23.6"],
+      "Uncut diamond": [0.211864407, "1/23.6"],
+      "Giant key": [0.0625, "1/16"],
+      "Long bone": [0.0025, "1/400"],
+      "Giant champion scroll": [0.0002, "1/5,000"],
+      "Curved bone": [0.000199481, "1/5,013"]
+    };
+    const orderedItems = Object.keys(averageDropRates);
+
+    // ——————————————————————————————————————————————
+    // 2) Aggregator: extract all monster outcomes
+    // ——————————————————————————————————————————————
+    function extractOutcomesFromLogContent(content) {
+      const lines = content.split(/\r?\n/).filter(l => l.trim());
+      const records = lines.map(l => JSON.parse(l));
+      const summary = {}, kills = {};
+
+      records.forEach(e => {
+        const lvl = e.level, mon = e.name;
+        summary[lvl] ||= {};
+        summary[lvl][mon] ||= {};
+        kills[lvl] ||= {};
+        kills[lvl][mon] = (kills[lvl][mon]||0) + 1;
+        e.drops.forEach(d => {
+          summary[lvl][mon][d.name] = (summary[lvl][mon][d.name]||0) + d.quantity;
+        });
+      });
+
+      const outcomes = [];
+      for (const [lvl, mons] of Object.entries(summary)) {
+        for (const [mon, drops] of Object.entries(mons)) {
+          outcomes.push({ level: parseInt(lvl,10), name: mon, kills: kills[lvl][mon]||0, drops });
+        }
+      }
+      return outcomes;
+    }
+
+    function parseLogFile(file) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try { res(extractOutcomesFromLogContent(e.target.result)); }
+          catch(err) { rej(err); }
+        };
+        reader.onerror = () => rej(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    // ——————————————————————————————————————————————
+    // 3) Render results for Obor
+    // ——————————————————————————————————————————————
+    function showResults(obor) {
+      const { kills, drops } = obor;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      let html = `<p><strong>You killed Obor ${kills.toLocaleString()} times</strong></p>`;
+      html += `<table class="results-table">
+        <tr><th>Item</th><th>Your Rate</th><th>Kills/Item</th>
+            <th>Rel. Rate</th><th>Δ vs Official</th><th>Official</th></tr>`;
+
+      orderedItems.forEach(item => {
+        const [avg, avgStr] = averageDropRates[item];
+        const cnt = drops[item]||0;
+        if (!cnt) return;
+        const dr = cnt/kills, pd = kills/cnt, rel = dr/avg;
+        let delta = '–';
+        if (rel>1) delta = `+${((rel-1)*100).toFixed(1)}%`;
+        else if (rel<1) delta = `–${((1-rel)*100).toFixed(1)}%`;
+        html += `<tr>
+          <td><span class="item-label">
+                <img class="item-icon" src="../imgs/${item}.png" alt=""> ${item}
+              </span></td>
+          <td>${dr.toFixed(4)}</td>
+          <td>${pd.toFixed(2)}</td>
+          <td>${rel.toFixed(3)}</td>
+          <td>${delta}</td>
+          <td>${avgStr}</td>
+        </tr>`;
+      });
+      html += `</table>
+               <p><strong>Refresh to run again.</strong></p>`;
+      dialog.innerHTML = html;
+    }
+
+    // ——————————————————————————————————————————————
+    // 4) Wire up file input → parse → render for Obor
+    // ——————————————————————————————————————————————
+    document.getElementById('logFileInput')
+      .addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const dialog = document.querySelector('.instruction-dialog .instruction-content');
+        dialog.innerHTML = `<p>Parsing log…</p>`;
+        parseLogFile(file)
+          .then(outcomes => {
+            const obor = outcomes.find(o => o.name.toLowerCase().includes('obor'));
+            if (!obor) {
+              dialog.innerHTML = `<p class="error">
+                No “Obor” entries found in log.</p>`;
+            } else {
+              showResults(obor);
+            }
+          })
+          .catch(err => {
+            dialog.innerHTML = `<p class="error">
+              Error parsing log: ${err.message}</p>`;
+            console.error(err);
+          });
+      });
+  </script>
+</body>
+</html>
