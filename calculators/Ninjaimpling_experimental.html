@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ninja Impling Drop-Rate Calculator</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input { padding: 5px; font-size: 1em; margin-top: 5px; width: 100%; max-width: 300px; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td { border: 1px solid #bbb; padding: 6px; font-size: 0.95em; }
+    .results-table th { background: #eee; }
+    .item-label { display: flex; align-items: center; gap: 6px; }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+  </style>
+</head>
+<body>
+  <div id="jspsych-target">
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <img class="side-image left-image" src="../imgs/Ninja impling.png" alt="Ninja impling">
+      <div class="instruction-dialog">
+        <div class="instruction-content">
+          <p><strong>Ninja impling Drop-Rate Calculator</strong></p>
+          <p>Please upload your Looter Log <code>.log</code> file below.<br>
+             I’ll auto-extract your Ninja impling catches &amp; drops and compute your rates.</p>
+          <div class="item-entry">
+            <input type="file" id="logFileInput" accept=".log,.txt" required>
+          </div>
+        </div>
+      </div>
+      <img class="side-image right-image" src="../imgs/Ninja impling.png" alt="Ninja impling">
+    </div>
+  </div>
+
+  <script>
+    // Official averages for Ninja impling drops
+    const averageDropRates = {
+      "Snakeskin boots": [0.052631579, "1/19"],
+      "Splitbark helm": [0.052631579, "1/19"],
+      "Mystic boots": [0.052631579, "1/19"],
+      "Rune chainbody": [0.052631579, "1/19"],
+      "Mystic gloves": [0.052631579, "1/19"],
+      "Opal machete": [0.052631579, "1/19"],
+      "Rune claws": [0.052631579, "1/19"],
+      "Rune scimitar": [0.052631579, "1/19"],
+      "Dragon dagger(p+)": [0.052631579, "1/19"],
+      "Rune arrow": [3.684210526, "1/19"],
+      "Rune dart": [3.684210526, "1/19"],
+      "Rune knife": [2.105263158, "1/19"],
+      "Rune thrownaxe": [2.631578947, "1/19"],
+      "Onyx bolts": [0.105263158, "1/19"],
+      "Onyx bolt tips": [0.210526316, "1/19"],
+      "Black dragonhide": [0.52631579, "1/19"],
+      "Prayer potion(3)": [0.210526316, "1/19"],
+      "Weapon poison(+)": [0.210526316, "1/19"],
+      "Dagannoth hide": [0.157894737, "1/19"],
+      "Clue scroll (hard)": [0.04, "1/25"]
+    };
+    const orderedItems = Object.keys(averageDropRates);
+
+    // Parse log and aggregate drops for all entries
+    function extractOutcomesFromLogContent(content) {
+      const lines = content.split(/\r?\n/).filter(l => l.trim());
+      const records = lines.map(l => JSON.parse(l));
+      const summary = {}, kills = {};
+      records.forEach(e => {
+        const mon = e.name;
+        kills[mon] = (kills[mon]||0) + 1;
+        summary[mon] = summary[mon] || {};
+        e.drops.forEach(d => {
+          summary[mon][d.name] = (summary[mon][d.name]||0) + d.quantity;
+        });
+      });
+      // Build outcomes array
+      return Object.entries(kills).map(([mon, k]) => ({ name: mon, kills: k, drops: summary[mon] }));
+    }
+
+    function parseLogFile(file) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try { res(extractOutcomesFromLogContent(e.target.result)); }
+          catch(err) { rej(err); }
+        };
+        reader.onerror = () => rej(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    function showResults(outcome) {
+      const { kills, drops } = outcome;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      let html = `<p><strong>You caught Ninja impling ${kills.toLocaleString()} times</strong></p>`;
+      html += `<table class="results-table">
+        <tr><th>Item</th><th>Your Rate</th><th>Catches/Item</th><th>Rel. Rate</th><th>Δ vs Official</th><th>Official</th></tr>`;
+      orderedItems.forEach(item => {
+        const [avg, avgStr] = averageDropRates[item];
+        const cnt = drops[item]||0;
+        if (!cnt) return;
+        const dr = cnt/kills, cp = kills/cnt, rel = dr/avg;
+        let delta = '–';
+        if (rel>1) delta = `+${((rel-1)*100).toFixed(1)}%`;
+        else if (rel<1) delta = `–${((1-rel)*100).toFixed(1)}%`;
+        html += `<tr>
+          <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+          <td>${dr.toFixed(4)}</td>
+          <td>${cp.toFixed(2)}</td>
+          <td>${rel.toFixed(3)}</td>
+          <td>${delta}</td>
+          <td>${avgStr}</td>
+        </tr>`;
+      });
+      html += `</table><p><strong>Refresh to run again.</strong></p>`;
+      dialog.innerHTML = html;
+    }
+
+    document.getElementById('logFileInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      dialog.innerHTML = `<p>Parsing log…</p>`;
+      parseLogFile(file)
+        .then(outcomes => {
+          const imp = outcomes.find(o => o.name.toLowerCase().includes('ninja impling'));
+          if (!imp) {
+            dialog.innerHTML = `<p class="error">No "Ninja impling" entries found in log.</p>`;
+          } else {
+            showResults(imp);
+          }
+        })
+        .catch(err => {
+          dialog.innerHTML = `<p class="error">Error parsing log: ${err.message}</p>`;
+          console.error(err);
+        });
+    });
+  </script>
+</body>
+</html>
