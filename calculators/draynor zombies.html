@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zombie Drop-Rate Calculator</title>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input,
+    .instruction-dialog select {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 300px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th { background: #eee; }
+  </style>
+</head>
+<body>
+  <div id="jspsych-target">
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <img class="side-image left-image" src="../imgs/Zombie (Level 13).png" alt="Zombie">
+      <div class="instruction-dialog">
+        <div class="instruction-content">
+          <p><strong>Zombie (Levels 13, 18 & 24) Drop-Rate Calculator</strong></p>
+          <p>Please upload your Looter Log <code>.log</code> file below.<br>
+             I’ll auto-extract your Level 13, 18 &amp; 24 kills &amp; drops and compute your rates.</p>
+          <div class="item-entry">
+            <input type="file" id="logFileInput" accept=".log,.txt" required>
+          </div>
+        </div>
+      </div>
+      <img class="side-image right-image" src="../imgs/Zombie (Level 13).png" alt="Zombie">
+    </div>
+  </div>
+
+  <script>
+    // Levels and drop tables per level
+    const averageDropRatesByLevel = {
+      13: {
+        "Bones": [1, "Always"],
+        "Bronze med helm": [0.03125, "1/32"],
+        "Bronze longsword": [0.0078125, "1/128"],
+        "Iron axe": [0.0078125, "1/128"],
+        "Iron arrow": [0.25, "1/32"],
+        "Body rune": [0.234375, "1/25.6"],
+        "Mind rune": [0.1953125, "1/25.6"],
+        "Air rune": [0.40625, "1/32"],
+        "Steel arrow": [0.078125, "1/64"],
+        "Nature rune": [0.046875, "1/128"],
+        "Coins": [2.049536009, "Varies"],
+        "Fishing bait": [1.445504481, "1/3.459"],
+        "Copper ore": [0.015625, "1/64"],
+        "Zombie champion scroll": [0.0002, "1/5,000"],
+        "Grimy guam leaf": [0.048780488, "1/20.5"],
+        "Grimy marrentill": [0.036630037, "1/27.3"],
+        "Grimy tarromin": [0.027472527, "1/36.4"],
+        "Grimy harralander": [0.021367521, "1/46.8"],
+        "Grimy ranarr weed": [0.016778523, "1/59.6"],
+        "Grimy irit leaf": [0.012210012, "1/81.9"],
+        "Grimy avantoe": [0.009157509, "1/109.2"],
+        "Grimy kwuarm": [0.007627765, "1/131.1"],
+        "Grimy cadantine": [0.006105006, "1/163.8"],
+        "Grimy lantadyme": [0.004576659, "1/218.5"],
+        "Grimy dwarf weed": [0.004576659, "1/218.5"]
+      },
+      18: {
+        "Bones": [1, "Always"],
+        "Zombie champion scroll": [0.0002, "1/5,000"]
+      },
+      24: {
+        "Bones": [1, "Always"],
+        "Iron mace": [0.023435669, "1/42.67"],
+        "Iron dagger": [0.015625, "1/64"],
+        "Bronze kiteshield": [0.0078125, "1/128"],
+        "Mithril arrow": [0.023435669, "1/42.67"],
+        "Air rune": [0.070307007, "1/42.67"],
+        "Body rune": [0.1875, "1/5.333"],
+        "Chaos rune": [4.512, "1/128"],
+        "Cosmic rune": [0.015625, "1/128"],
+        "Fire rune": [0.0546875, "1/128"],
+        "Coins": [7.015512293, "Varies"],
+        "Fishing bait": [1.421897217, "1/4.923"],
+        "Tinderbox": [0.015625, "1/64"],
+        "Eye of newt": [0.0078125, "1/128"],
+        "Tin ore": [0.0078125, "1/128"],
+        "Grimy guam leaf": [0.058479532, "1/17.1"],
+        "Grimy marrentill": [0.043859649, "1/22.8"],
+        "Grimy tarromin": [0.0330033, "1/30.3"],
+        "Grimy harralander": [0.025641026, "1/39"],
+        "Grimy ranarr weed": [0.02016129, "1/49.6"],
+        "Grimy irit leaf": [0.014641288, "1/68.3"],
+        "Grimy avantoe": [0.010989011, "1/91"],
+        "Grimy kwuarm": [0.009157509, "1/109.2"],
+        "Grimy cadantine": [0.007326007, "1/136.5"],
+        "Grimy lantadyme": [0.005494505, "1/182"],
+        "Grimy dwarf weed": [0.005494505, "1/182"],
+        "Uncut sapphire": [0.001953125, "1/512"],
+        "Uncut emerald": [0.000976563, "1/1,024"],
+        "Uncut ruby": [0.000488281, "1/2,048"],
+        "Chaos talisman": [0.000183117, "1/5,461"],
+        "Nature talisman": [0.000183117, "1/5,461"],
+        "Uncut diamond": [0.00012207, "1/8,192"],
+        "Loop half of key": [6.10352e-05, "1/16,384"],
+        "Tooth half of key": [6.10352e-05, "1/16,384"],
+        "Rune javelin": [0.000305176, "1/16,384"],
+        "Rune spear": [3.8147e-06, "1/262,144"],
+        "Shield left half": [1.90735e-06, "1/524,288"],
+        "Dragon spear": [0.001430511, "1/699,051"],
+        "Uncut sapphire (ROW)": [0.003846154, "1/260"],
+        "Uncut emerald (ROW)": [0.001923077, "1/520"],
+        "Uncut ruby (ROW)": [0.000961538, "1/1,040"],
+        "Chaos talisman (ROW)": [0.00036062, "1/2,773"],
+        "Nature talisman (ROW)": [0.00036062, "1/2,773"],
+        "Uncut diamond (ROW)": [0.000240385, "1/4,160"],
+        "Loop half of key (ROW)": [0.000120192, "1/8,320"],
+        "Tooth half of key (ROW)": [0.000120192, "1/8,320"],
+        "Rune javelin (ROW)": [0.000600962, "1/8,320"],
+        "Rune spear (ROW)": [6.41026e-05, "1/15,600"],
+        "Shield left half (ROW)": [3.20513e-05, "1/31,200"],
+        "Dragon spear (ROW)": [2.40385e-05, "1/41,600"]
+      }
+    };
+    const levels = [13, 18, 24];
+
+    // extract outcomes for specified levels
+    function extractOutcomesFromLogContent(content) {
+      const lines = content.split(/\r?\n/).filter(l => l.trim());
+      const records = lines.map(l => JSON.parse(l));
+      const summary = {}, kills = {};
+      records.forEach(e => {
+        const lvl = e.level, mon = e.name;
+        summary[lvl] ||= {};
+        summary[lvl][mon] ||= {};
+        kills[lvl] ||= {};
+        kills[lvl][mon] = (kills[lvl][mon] || 0) + 1;
+        e.drops.forEach(d => {
+          summary[lvl][mon][d.name] = (summary[lvl][mon][d.name] || 0) + d.quantity;
+        });
+      });
+      const outcomes = [];
+      levels.forEach(lvl => {
+        if (summary[lvl]) {
+          Object.entries(summary[lvl]).forEach(([mon, drops]) => {
+            outcomes.push({ level: lvl, name: mon, kills: kills[lvl][mon]||0, drops });
+          });
+        }
+      });
+      return outcomes;
+    }
+
+    function parseLogFile(file) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try { res(extractOutcomesFromLogContent(e.target.result)); }
+          catch(err) { rej(err); }
+        };
+        reader.onerror = () => rej(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    function showResults(outcomes) {
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      let html = '';
+      outcomes.forEach(o => {
+        const { level, name, kills, drops } = o;
+        html += `<p><strong>${name} (level ${level}) killed: ${kills.toLocaleString()}</strong></p>`;
+        html += `<table class="results-table">
+          <tr><th>Item</th><th>Your Rate</th><th>Kills/Item</th><th>Rel. Rate</th><th>Δ vs Official</th><th>Official</th></tr>`;
+        const avgRates = averageDropRatesByLevel[level];
+        Object.keys(avgRates).forEach(item => {
+          const [avg, avgStr] = avgRates[item];
+          const cnt = drops[item]||0;
+          if (!cnt) return;
+          const dr = cnt / kills;
+          const pd = kills / cnt;
+          const rel = dr / avg;
+          let delta = '–';
+          if (rel > 1) delta = `+${((rel-1)*100).toFixed(1)}%`;
+          else if (rel < 1) delta = `–${((1-rel)*100).toFixed(1)}%`;
+          html += `<tr>
+            <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt=""> ${item}</span></td>
+            <td>${dr.toFixed(4)}</td>
+            <td>${pd.toFixed(2)}</td>
+            <td>${rel.toFixed(3)}</td>
+            <td>${delta}</td>
+            <td>${avgStr}</td>
+          </tr>`;
+        });
+        html += `</table><hr/>`;
+      });
+      html += `<p><strong>Refresh to run again.</strong></p>`;
+      dialog.innerHTML = html;
+    }
+
+    document.getElementById('logFileInput')
+      .addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const dialog = document.querySelector('.instruction-dialog .instruction-content');
+        dialog.innerHTML = `<p>Parsing log…</p>`;
+        parseLogFile(file)
+          .then(outcomes => {
+            if (!outcomes.length) {
+              dialog.innerHTML = `<p class="error">No Level 13, 18 or 24 \u201CZombie\u201D found in log.</p>`;
+            } else {
+              showResults(outcomes);
+            }
+          })
+          .catch(err => {
+            dialog.innerHTML = `<p class="error">Error parsing log: ${err.message}</p>`;
+            console.error(err);
+          });
+      });
+  </script>
+</body>
+</html>
