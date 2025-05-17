@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Man &amp; Woman lvl 2 Kill &amp; Drop Rate Calculator</title>
+  <title>Dark Wizard (level 7) Kill & Drop Rate Calculator</title>
   <script src="../jspsych/jspsych.js"></script>
   <script src="../jspsych/plugin-html-keyboard-response.js"></script>
   <script src="../jspsych/plugin-survey-html-form.js"></script>
@@ -60,53 +60,48 @@
     .results-table th { background: #eee; }
   </style>
   <script>
-    // --- NEW DROP DATA FOR MAN (LVL 2) & WOMAN (LVL 2) ---
     const averageDropRates = {
       "Bones": [1, "Always"],
-      "Bronze med helm": [0.015625, "1/64"],
-      "Iron dagger": [0.0078125, "1/128"],
-      "Bronze bolts": [1.203162599, "1/5.818"],
-      "Bronze arrow": [0.164049684, "1/42.67"],
-      "Earth rune": [0.0625, "1/64"],
-      "Fire rune": [0.09375, "1/64"],
-      "Mind rune": [0.140625, "1/64"],
-      "Chaos rune": [0.015625, "1/128"],
-      "Fishing bait": [0.0390625, "1/25.6"],
-      "Copper ore": [0.015625, "1/64"],
-      "Earth talisman": [0.015625, "1/64"],
-      "Cabbage": [0.0078125, "1/128"],
-      "Clue scroll (beginner)": [0.011111111, "1/90"],
-      "Clue scroll (easy)": [0.0078125, "1/128"],
-      "Coins": [1.01567994, "Varies"],
-      "Grimy guam leaf": [0.044843049, "1/22.3"],
-      "Grimy marrentill": [0.033670034, "1/29.7"],
-      "Grimy Tarromin": [0.025252525, "1/39.6"],
-      "Grimy harralander": [0.019646365, "1/50.9"],
-      "Grimy ranarr weed": [0.015432099, "1/64.8"],
-      "Grimy irit leaf": [0.011235955, "1/89"],
-      "Grimy avantoe": [0.0084246, "1/118.7"],
-      "Grimy kwuarm": [0.007017544, "1/142.5"],
-      "Grimy cadantine": [0.005614823, "1/178.1"],
-      "Grimy lantadyme": [0.0042123, "1/237.4"],
-      "Grimy dwarf weed": [0.0042123, "1/237.4"]
+      "Staff": [0.0625, "1/16"],
+      "Wizard hat (black)": [0.03125, "1/32"],
+      "Black robe": [0.02343567, "1/42.67"],
+      "Earth rune": [1.640606691, "1/32"],
+      "Air rune": [0.515606691, "Varies"],
+      "Water rune": [0.515606691, "Varies"],
+      "Fire rune": [0.515606691, "Varies"],
+      "Nature rune": [0.218698742, "1/18.29"],
+      "Chaos rune": [0.234411627, "1/21.33"],
+      "Mind rune": [0.515606691, "Varies"],
+      "Body rune": [0.515606691, "Varies"],
+      "Blood rune": [0.03125, "1/64"],
+      "Cosmic rune": [0.015625, "1/128"],
+      "Law rune": [0.0234375, "1/128"],
+      "Coins": [1.51552791, "Varies"],
+      "Water talisman": [0.0078125, "1/128"],
+      "Fire talisman": [0.0078125, "1/128"],
+      "Clue scroll (beginner)": [0.02, "1/50"]
     };
 
     const orderedItems = Object.keys(averageDropRates);
     let calculationResults;
 
-    const createInstructionDialog = content => `
+    function createInstructionDialog(content) {
+      return `
       <div style="display: flex; align-items: center; justify-content: center;">
-        <img class="side-image left-image" src="../imgs/Man.png" alt="Man">
+        <img class="side-image left-image" src="../imgs/Dark_wizard_(Level_7).png" alt="Dark Wizard">
         <div class="instruction-dialog"><div class="instruction-content">${content}</div></div>
-        <img class="side-image right-image" src="../imgs/Woman.png" alt="Woman">
+        <img class="side-image right-image" src="../imgs/Dark_wizard_(Level_7).png" alt="Dark Wizard">
       </div>`;
+    }
 
+    // initialize jsPsych
     const jsPsych = initJsPsych();
 
+    // input form trial
     const combined_input_trial = {
       type: jsPsychSurveyHtmlForm,
       html: createInstructionDialog(`
-        <p><strong>Welcome to the Kill & Drop Rate Calculator for Man & Woman (lvl 2).</strong></p>
+        <p><strong>Welcome to the Kill & Drop Rate Calculator for Dark Wizard (level 7).</strong></p>
         <p>Please enter your overall kills and how many of each item you obtained.</p>
         <div class="item-entry">
           <strong>Overall Kills:</strong>
@@ -121,6 +116,7 @@
       button_label: 'Submit'
     };
 
+    // computation trial
     const calculate_trial = {
       type: jsPsychCallFunction,
       func: () => {
@@ -133,7 +129,7 @@
         }
         const results = {};
         for (const item of orderedItems) {
-          const [avgDrop, _] = averageDropRates[item];
+          const [avgDrop] = averageDropRates[item];
           const count = parseFloat(resp[item]) || 0;
           const dropRate = count / kills;
           const perDrop = count > 0 ? kills / count : Infinity;
@@ -144,6 +140,7 @@
       }
     };
 
+    // results display trial
     const feedback_trial = {
       type: jsPsychHtmlKeyboardResponse,
       choices: [],
@@ -153,32 +150,29 @@
         }
         let table = `<table class="results-table">
           <tr><th>Item</th><th>Your Drop Rate</th><th>Kills per Item</th><th>Relative Rate</th><th>Comparison</th><th>Official Rate</th></tr>`;
-          for (const item of orderedItems) {
-            const stats = calculationResults[item];
-            if (stats.count === 0) continue;
-            const [_, officialRateStr] = averageDropRates[item];
-            const dr = stats.dropRate.toFixed(4);
-            const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
-            const rr = stats.relative.toFixed(4);
-            let cmp = '–';
-            if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
-            else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
-            table += `<tr>
-              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
-              <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
-            </tr>`;
-          }
+        for (const item of orderedItems) {
+          const stats = calculationResults[item];
+          if (stats.count === 0) continue;
+          const officialRateStr = averageDropRates[item][1];
+          const dr = stats.dropRate.toFixed(4);
+          const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
+          const rr = stats.relative.toFixed(4);
+          let cmp = '–';
+          if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
+          else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
+          table += `<tr>
+            <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+            <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
+          </tr>`;
+        }
         table += `</table>`;
-        return createInstructionDialog(`
-        <p><strong>Here are your results:</strong></p>${table}
-        <p><strong>To do another calculation, press F5 on your keyboard to refresh this page.</strong></p>
-        <div style="margin-top:20px;">
-          <button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button>
-          <button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button>
-        </div>`);
+        return createInstructionDialog(
+`        <p><strong>Here are your results:</strong></p>${table}<p><strong>To do another calculation, press F5 on your keyboard to refresh this page.</strong></p>
+        <div style="margin-top: 20px;"><button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button><button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button></div>`);
       }
     };
 
+    // run the sequence
     jsPsych.run([combined_input_trial, calculate_trial, feedback_trial], {
       display_element: document.getElementById('jspsych-target')
     });
@@ -187,10 +181,9 @@
 <body>
   <div id="jspsych-target"></div>
   <div style="text-align: center; margin-top: 30px;">
-    <a href="../skill-pets.html" style="margin-right:20px; padding:10px 20px; background:#e0e0e0; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">⬅ Back to Category</a>
-    <a href="../index.html" style="padding:10px 20px; background:#fdd835; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">🏠 Home</a>
+    <a href="../skill-pets.html" style="margin-right: 20px; padding: 10px 20px; background: #e0e0e0; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding: 10px 20px; background: #fdd835; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">🏠 Home</a>
   </div>
-
   <div style="text-align: center; margin-top: 20px;">
     <button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button>
     <button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Black Knight (Level 33) Drop-Rate Calculator</title>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input,
+    .instruction-dialog select {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 300px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th { background: #eee; }
+  </style>
+</head>
+<body>
+  <div id="jspsych-target">
+    <!-- initial upload form -->
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <img class="side-image left-image" src="../imgs/Black_knight_(Level_33).png" alt="Black knight">
+      <div class="instruction-dialog">
+        <div class="instruction-content">
+          <p><strong>Black Knight Lvl 33 Drop-Rate Calculator</strong></p>
+          <p>Please upload your Looter Log Black Knight <code>.log</code> file below.<br>
+             I’ll auto-extract your Level 33 kills &amp; drops and compute your rates.</p>
+          <div class="item-entry">
+            <input type="file" id="logFileInput" accept=".log,.txt" required>
+          </div>
+        </div>
+      </div>
+      <img class="side-image right-image" src="../imgs/Black_knight_(Level_33).png" alt="Black knight">
+    </div>
+  </div>
+
+  <script>
+    // 1) Official averages (Black knight level 33)
+    const averageDropRates = {
+      "Bones": [1, "Always"],
+      "Iron sword": [0.03125, "1/32"],
+      "Iron full helm": [0.015625, "1/64"],
+      "Steel mace": [0.0078125, "1/128"],
+      "Mithril arrow": [0.03125, "1/32"],
+      "Body rune": [0.210921022, "1/42.67"],
+      "Chaos rune": [0.140614015, "1/42.67"],
+      "Earth rune": [0.234356691, "1/42.67"],
+      "Death rune": [0.03125, "1/64"],
+      "Law rune": [0.046875, "1/64"],
+      "Cosmic rune": [0.0546875, "1/128"],
+      "Mind rune": [0.015625, "1/128"],
+      "Grimy guam leaf": [0.005858231, "1/170.7"],
+      "Grimy marrentill": [0.004393673, "1/227.6"],
+      "Grimy tarromin": [0.003295979, "1/303.4"],
+      "Grimy harralander": [0.002563445, "1/390.1"],
+      "Grimy ranarr weed": [0.002014099, "1/496.5"],
+      "Grimy irit leaf": [0.001464772, "1/682.7"],
+      "Grimy avantoe": [0.001234263, "1/910.2"],
+      "Grimy kwuarm": [0.000915751, "1/1092"],
+      "Grimy cadantine": [0.000732601, "1/1365"],
+      "Grimy lantadyme": [0.000549451, "1/1820"],
+      "Potato seed": [0.210526316, "1/19"],
+      "Onion seed": [0.16, "1/25"],
+      "Cabbage seed": [0.105263158, "1/38"],
+      "Tomato seed": [0.038961039, "1/77"],
+      "Sweetcorn seed": [0.019354839, "1/155"],
+      "Strawberry seed": [0.006430868, "1/311"],
+      "Watermelon seed": [0.003072197, "1/651"],
+      "Snape grass seed": [0.002232143, "1/896"],
+      "Steel bar": [0.046882325, "1/21.33"],
+      "Tin ore": [0.0078125, "1/128"],
+      "Pot of flour": [0.0078125, "1/128"],
+      "Coins": [12.99238088, "1/6.095"],
+      "Slayer's enchantment": [0.003484321, "1/287"],
+      "Larran's key": [0.001312336, "1/762"],
+      "Bread": [0.0078125, "1/128"],
+      "Uncut sapphire": [0.005858231, "1/170.7"],
+      "Uncut emerald": [0.002929974, "1/341.3"],
+      "Uncut ruby": [0.001464772, "1/682.7"],
+      "Chaos talisman": [0.000549451, "1/1820"],
+      "Nature talisman": [0.000549451, "1/1820"],
+      "Uncut diamond": [0.000366166, "1/2731"],
+      "Loop half of key": [0.000183117, "1/5461"],
+      "Tooth half of key": [0.000183117, "1/5461"],
+      "Rune javelin": [0.000915583, "1/5461"],
+      "Rune spear": [1.14441e-05, "1/87381"],
+      "Shield left half": [5.72203e-06, "1/174763"],
+      "Dragon spear": [4.29153e-06, "1/233017"],
+      "Uncut sapphire (ROW)": [0.012091898, "1/86.7"],
+      "Uncut emerald (ROW)": [0.005780347, "1/173"],
+      "Uncut ruby (ROW)": [0.002881844, "1/347"],
+      "Chaos talisman (ROW)": [0.001082251, "1/924"],
+      "Nature talisman (ROW)": [0.001082251, "1/924"],
+      "Uncut diamond (ROW)": [0.000720981, "1/1387"],
+      "Loop half of key (ROW)": [0.00036062, "1/2773"],
+      "Tooth half of key (ROW)": [0.00036062, "1/2773"],
+      "Rune javelin (ROW)": [0.001803101, "1/2773"],
+      "Rune spear (ROW)": [0.000192308, "1/5200"],
+      "Shield left half (ROW)": [9.61538e-05, "1/10400"],
+      "Dragon spear (ROW)": [7.21137e-05, "1/13867"]
+    };
+    const orderedItems = Object.keys(averageDropRates);
+
+    // 2) Extract only Level 33 Black knight
+    function extractOutcomesFromLogContent(content) {
+      const lines = content.split(/\r?\n/).filter(l => l.trim());
+      const records = lines.map(l => JSON.parse(l));
+      const summary = {}, kills = {};
+      records.forEach(e => {
+        const lvl = e.level, mon = e.name;
+        summary[lvl] = summary[lvl] || {};
+        summary[lvl][mon] = summary[lvl][mon] || {};
+        kills[lvl] = kills[lvl] || {};
+        kills[lvl][mon] = (kills[lvl][mon]||0) + 1;
+        e.drops.forEach(d => {
+          summary[lvl][mon][d.name] = (summary[lvl][mon][d.name]||0) + d.quantity;
+        });
+      });
+      const outcomes = [];
+      if (summary[33]) {
+        for (const [mon, drops] of Object.entries(summary[33])) {
+          outcomes.push({ level: 33, name: mon, kills: kills[33][mon]||0, drops });
+        }
+      }
+      return outcomes;
+    }
+
+    function parseLogFile(file) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try { res(extractOutcomesFromLogContent(e.target.result)); }
+          catch(err) { rej(err); }
+        };
+        reader.onerror = () => rej(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    // 3) Render results
+    function showResults(bk) {
+      const { kills, drops } = bk;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      let html = `<p><strong>You killed Black knight (level 33) ${kills.toLocaleString()} times</strong></p>`;
+      html += `<table class="results-table">
+        <tr><th>Item</th><th>Your Rate</th><th>Kills/Item</th><th>Rel. Rate</th><th>Δ vs Official</th><th>Official</th></tr>`;
+      orderedItems.forEach(item => {
+        const [avg, avgStr] = averageDropRates[item];
+        const cnt = drops[item]||0;
+        if (!cnt) return;
+        const dr = cnt/kills, pd = kills/cnt, rel = dr/avg;
+        let delta = '–';
+        if (rel>1) delta = `+${((rel-1)*100).toFixed(1)}%`;
+        else if (rel<1) delta = `–${((1-rel)*100).toFixed(1)}%`;
+        html += `<tr>
+          <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt=""> ${item}</span></td>
+          <td>${dr.toFixed(4)}</td><td>${pd.toFixed(2)}</td><td>${rel.toFixed(3)}</td><td>${delta}</td><td>${avgStr}</td>
+        </tr>`;
+      });
+      html += `</table><p><strong>Refresh to run again.</strong></p>`;
+      dialog.innerHTML = html;
+    }
+
+    // 4) file input handling
+    document.getElementById('logFileInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      dialog.innerHTML = `<p>Parsing log…</p>`;
+      parseLogFile(file)
+        .then(outcomes => {
+          const bk = outcomes.find(o => o.name.toLowerCase().includes('black knight'));
+          if (!bk) {
+            dialog.innerHTML = `<p class="error">No Level 33 “Black knight” found in log.</p>`;
+          } else {
+            showResults(bk);
+          }
+        })
+        .catch(err => {
+          dialog.innerHTML = `<p class="error">Error parsing log: ${err.message}</p>`;
+          console.error(err);
+        });
+    });
+  </script>
+</body>
+</html>

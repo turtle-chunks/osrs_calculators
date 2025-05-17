@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Man &amp; Woman lvl 2 Kill &amp; Drop Rate Calculator</title>
+  <title>Black knight (level 33) Kill & Drop Rate Calculator</title>
   <script src="../jspsych/jspsych.js"></script>
   <script src="../jspsych/plugin-html-keyboard-response.js"></script>
   <script src="../jspsych/plugin-survey-html-form.js"></script>
@@ -60,35 +60,68 @@
     .results-table th { background: #eee; }
   </style>
   <script>
-    // --- NEW DROP DATA FOR MAN (LVL 2) & WOMAN (LVL 2) ---
     const averageDropRates = {
       "Bones": [1, "Always"],
-      "Bronze med helm": [0.015625, "1/64"],
-      "Iron dagger": [0.0078125, "1/128"],
-      "Bronze bolts": [1.203162599, "1/5.818"],
-      "Bronze arrow": [0.164049684, "1/42.67"],
-      "Earth rune": [0.0625, "1/64"],
-      "Fire rune": [0.09375, "1/64"],
-      "Mind rune": [0.140625, "1/64"],
-      "Chaos rune": [0.015625, "1/128"],
-      "Fishing bait": [0.0390625, "1/25.6"],
-      "Copper ore": [0.015625, "1/64"],
-      "Earth talisman": [0.015625, "1/64"],
-      "Cabbage": [0.0078125, "1/128"],
-      "Clue scroll (beginner)": [0.011111111, "1/90"],
-      "Clue scroll (easy)": [0.0078125, "1/128"],
-      "Coins": [1.01567994, "Varies"],
-      "Grimy guam leaf": [0.044843049, "1/22.3"],
-      "Grimy marrentill": [0.033670034, "1/29.7"],
-      "Grimy Tarromin": [0.025252525, "1/39.6"],
-      "Grimy harralander": [0.019646365, "1/50.9"],
-      "Grimy ranarr weed": [0.015432099, "1/64.8"],
-      "Grimy irit leaf": [0.011235955, "1/89"],
-      "Grimy avantoe": [0.0084246, "1/118.7"],
-      "Grimy kwuarm": [0.007017544, "1/142.5"],
-      "Grimy cadantine": [0.005614823, "1/178.1"],
-      "Grimy lantadyme": [0.0042123, "1/237.4"],
-      "Grimy dwarf weed": [0.0042123, "1/237.4"]
+      "Iron sword": [0.03125, "1/32"],
+      "Iron full helm": [0.015625, "1/64"],
+      "Steel mace": [0.0078125, "1/128"],
+      "Mithril arrow": [0.03125, "1/32"],
+      "Body rune": [0.210921022, "1/42.67"],
+      "Chaos rune": [0.140614015, "1/42.67"],
+      "Earth rune": [0.234356691, "1/42.67"],
+      "Death rune": [0.03125, "1/64"],
+      "Law rune": [0.046875, "1/64"],
+      "Cosmic rune": [0.0546875, "1/128"],
+      "Mind rune": [0.015625, "1/128"],
+      "Grimy guam leaf": [0.005858231, "1/170.7"],
+      "Grimy marrentill": [0.004393673, "1/227.6"],
+      "Grimy tarromin": [0.003295979, "1/303.4"],
+      "Grimy harralander": [0.002563445, "1/390.1"],
+      "Grimy ranarr weed": [0.002014099, "1/496.5"],
+      "Grimy irit leaf": [0.001464772, "1/682.7"],
+      "Grimy avantoe": [0.001234263, "1/910.2"],
+      "Grimy kwuarm": [0.000915751, "1/1,092"],
+      "Grimy cadantine": [0.000732601, "1/1,365"],
+      "Grimy lantadyme": [0.000549451, "1/1,820"],
+      "Potato seed": [0.210526316, "1/19"],
+      "Onion seed": [0.16, "1/25"],
+      "Cabbage seed": [0.105263158, "1/38"],
+      "Tomato seed": [0.038961039, "1/77"],
+      "Sweetcorn seed": [0.019354839, "1/155"],
+      "Strawberry seed": [0.006430868, "1/311"],
+      "Watermelon seed": [0.003072197, "1/651"],
+      "Snape grass seed": [0.002232143, "1/896"],
+      "Steel bar": [0.046882325, "1/21.33"],
+      "Tin ore": [0.0078125, "1/128"],
+      "Pot of flour": [0.0078125, "1/128"],
+      "Coins": [12.99238088, "1/6.095"],
+      "Slayer's enchantment": [0.003484321, "1/287"],
+      "Larran's key": [0.001312336, "1/762"],
+      "Bread": [0.0078125, "1/128"],
+      "Uncut sapphire": [0.005858231, "1/170.7"],
+      "Uncut emerald": [0.002929974, "1/341.3"],
+      "Uncut ruby": [0.001464772, "1/682.7"],
+      "Chaos talisman": [0.000549451, "1/1820"],
+      "Nature talisman": [0.000549451, "1/1820"],
+      "Uncut diamond": [0.000366166, "1/2731"],
+      "Loop half of key": [0.000183117, "1/5461"],
+      "Tooth half of key": [0.000183117, "1/5461"],
+      "Rune javelin": [0.000915583, "1/5461"],
+      "Rune spear": [1.14441e-05, "1/87381"],
+      "Shield left half": [5.72203e-06, "1/174763"],
+      "Dragon spear": [4.29153e-06, "1/233017"],
+      "Uncut sapphire (ROW)": [0.012091898, "1/86.7"],
+      "Uncut emerald (ROW)": [0.005780347, "1/173"],
+      "Uncut ruby (ROW)": [0.002881844, "1/347"],
+      "Chaos talisman (ROW)": [0.001082251, "1/924"],
+      "Nature talisman (ROW)": [0.001082251, "1/924"],
+      "Uncut diamond (ROW)": [0.000720981, "1/1387"],
+      "Loop half of key (ROW)": [0.00036062, "1/2773"],
+      "Tooth half of key (ROW)": [0.00036062, "1/2773"],
+      "Rune javelin (ROW)": [0.001803101, "1/2773"],
+      "Rune spear (ROW)": [0.000192308, "1/5200"],
+      "Shield left half (ROW)": [9.61538e-05, "1/10400"],
+      "Dragon spear (ROW)": [7.21137e-05, "1/13867"]
     };
 
     const orderedItems = Object.keys(averageDropRates);
@@ -96,9 +129,9 @@
 
     const createInstructionDialog = content => `
       <div style="display: flex; align-items: center; justify-content: center;">
-        <img class="side-image left-image" src="../imgs/Man.png" alt="Man">
+        <img class="side-image left-image" src="../imgs/Black_knight_(Level_33).png" alt="Black knight">
         <div class="instruction-dialog"><div class="instruction-content">${content}</div></div>
-        <img class="side-image right-image" src="../imgs/Woman.png" alt="Woman">
+        <img class="side-image right-image" src="../imgs/Black_knight_(Level_33).png" alt="Black knight">
       </div>`;
 
     const jsPsych = initJsPsych();
@@ -106,7 +139,7 @@
     const combined_input_trial = {
       type: jsPsychSurveyHtmlForm,
       html: createInstructionDialog(`
-        <p><strong>Welcome to the Kill & Drop Rate Calculator for Man & Woman (lvl 2).</strong></p>
+        <p><strong>Welcome to the Kill & Drop Rate Calculator.</strong></p>
         <p>Please enter your overall kills and how many of each item you obtained.</p>
         <div class="item-entry">
           <strong>Overall Kills:</strong>
@@ -133,7 +166,7 @@
         }
         const results = {};
         for (const item of orderedItems) {
-          const [avgDrop, _] = averageDropRates[item];
+          const [avgDrop] = averageDropRates[item];
           const count = parseFloat(resp[item]) || 0;
           const dropRate = count / kills;
           const perDrop = count > 0 ? kills / count : Infinity;
@@ -153,29 +186,26 @@
         }
         let table = `<table class="results-table">
           <tr><th>Item</th><th>Your Drop Rate</th><th>Kills per Item</th><th>Relative Rate</th><th>Comparison</th><th>Official Rate</th></tr>`;
-          for (const item of orderedItems) {
-            const stats = calculationResults[item];
-            if (stats.count === 0) continue;
-            const [_, officialRateStr] = averageDropRates[item];
-            const dr = stats.dropRate.toFixed(4);
-            const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
-            const rr = stats.relative.toFixed(4);
-            let cmp = '–';
-            if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
-            else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
-            table += `<tr>
-              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
-              <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
-            </tr>`;
-          }
+        for (const item of orderedItems) {
+          const stats = calculationResults[item];
+          if (stats.count === 0) continue;
+          const officialRateStr = averageDropRates[item][1];
+          const dr = stats.dropRate.toFixed(4);
+          const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
+          const rr = stats.relative.toFixed(4);
+          let cmp = '–';
+          if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
+          else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
+          table += `<tr>
+            <td><span class="item-label"><img class="item-icon" src="../imgs/${item.replace(/ /g, '_')}.png" alt="${item}"> ${item}</span></td>
+            <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
+          </tr>`;
+        }
         table += `</table>`;
-        return createInstructionDialog(`
-        <p><strong>Here are your results:</strong></p>${table}
-        <p><strong>To do another calculation, press F5 on your keyboard to refresh this page.</strong></p>
-        <div style="margin-top:20px;">
-          <button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button>
-          <button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button>
-        </div>`);
+        return createInstructionDialog(
+`          <p><strong>Here are your results:</strong></p>${table}
+          <p><strong>To do another calculation, press F5 on your keyboard to refresh this page.</strong></p>
+          <div style="margin-top: 20px;"><button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button><button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button></div>`);
       }
     };
 
@@ -187,8 +217,8 @@
 <body>
   <div id="jspsych-target"></div>
   <div style="text-align: center; margin-top: 30px;">
-    <a href="../skill-pets.html" style="margin-right:20px; padding:10px 20px; background:#e0e0e0; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">⬅ Back to Category</a>
-    <a href="../index.html" style="padding:10px 20px; background:#fdd835; border:1px solid #000; border-radius:8px; text-decoration:none; font-size:1em;">🏠 Home</a>
+    <a href="../skill-pets.html" style="margin-right: 20px; padding: 10px 20px; background: #e0e0e0; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding: 10px 20px; background: #fdd835; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">🏠 Home</a>
   </div>
 
   <div style="text-align: center; margin-top: 20px;">
