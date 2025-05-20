@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Black Dragon Level 227 Drop-Rate Calculator</title>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 800px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input,
+    .instruction-dialog select {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 300px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th { background: #eee; }
+  </style>
+</head>
+<body>
+  <div id="jspsych-target">
+    <!-- initial upload form -->
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <img class="side-image left-image" src="../imgs/Black dragon.png" alt="Black dragon">
+      <div class="instruction-dialog">
+        <div class="instruction-content">
+          <p><strong>Black Dragon Level 227 Drop-Rate Calculator</strong></p>
+          <p>Please upload your Looter Log Black dragon <code>.log</code> file below.<br>
+             I’ll auto-extract your Level 227 kills &amp; drops and compute your rates.</p>
+          <div class="item-entry">
+            <input type="file" id="logFileInput" accept=".log,.txt" required>
+          </div>
+        </div>
+      </div>
+      <img class="side-image right-image" src="../imgs/Black dragon.png" alt="Black dragon">
+    </div>
+  </div>
+
+  <script>
+    // ——————————————————————————————————————————————
+    // 1) Black Dragon averages
+    // ——————————————————————————————————————————————
+    const averageDropRates = {
+       "Dragon bones": [1, "Always"],
+      "Black dragonhide": [1, "Always"],
+      "Mithril 2h sword": [0.03125, "1/32"],
+      "Mithril axe": [0.023435669, "1/42.67"],
+      "Mithril battleaxe": [0.023435669, "1/42.67"],
+      "Rune knife": [0.046871338, "1/42.67"],
+      "Mithril kiteshield": [0.0078125, "1/128"],
+      "Adamant platebody": [0.0078125, "1/128"],
+      "Rune longsword": [0.0078125, "1/128"],
+      "Adamant javelin": [4.692382813, "Varies"],
+      "Fire rune": [3.125, "42370"],
+      "Adamant dart(p)": [0.87479497, "1/18.29"],
+      "Law rune": [0.401611328, "Varies"],
+      "Blood rune": [0.351535036, "1/42.67"],
+      "Air rune": [0.5859375, "1/128"],
+      "Coins": [100, "Varies"],
+      "Dragon javelin heads": [0.468823254, "1/21.33"],
+      "Adamantite bar": [0.023435669, "1/42.67"],
+      "Chocolate cake": [0.023435669, "1/42.67"],
+      "Ensouled dragon head": [0.028571429, "12785"],
+      "Brimstone key": [0.013333333, "1/75"],
+      "Clue scroll (hard)": [0.0078125, "1/128"],
+      "Clue scroll (elite)": [0.002, "1/500"],
+      "Draconic visage": [0.0001, "1/10,000"],
+      "Runite bar": [0.000610501, "1/1,638"],
+      "Nature rune": [0.024533138, "1/2,731"],
+      "Rune 2h sword": [0.000366166, "1/2,731"],
+      "Rune battleaxe": [0.000366166, "1/2,731"],
+      "Death rune": [0.010986328, "1/4,096"],
+      "Steel arrow": [0.036621094, "1/4,096"],
+      "Rune arrow": [0.010253906, "1/4,096"],
+      "Rune sq shield": [0.000244141, "1/4,096"],
+      "Dragonstone": [0.000244141, "1/4,096"],
+      "Silver ore": [0.024414063, "1/4,096"],
+      "Rune kiteshield": [0.00012207, "1/8,192"],
+      "Dragon med helm": [0.00012207, "1/8,192"],
+      "Uncut sapphire": [0.006468305, "1/154.6"],
+      "Uncut emerald": [0.003235199, "1/309.1"],
+      "Uncut ruby": [0.001617338, "1/618.3"],
+      "Loop half of key": [0.002643405, "1/378.3"],
+      "Tooth half of key": [0.002643405, "1/378.3"],
+      "Chaos talisman": [0.000606428, "1/1,649"],
+      "Nature talisman": [0.000606428, "1/1,649"],
+      "Uncut diamond": [0.000404367, "1/2,473"],
+      "Rune javelin": [0.001010918, "1/4,946"],
+      "Rune spear": [0.000127081, "1/7,869"],
+      "Shield left half": [0.0000635405, "1/15,738"],
+      "Dragon spear": [0.0000476531, "1/20,985"],
+      // ROW variants
+      "Uncut sapphire (ROW)": [0.012738854, "1/78.5"],
+      "Uncut emerald (ROW)": [0.006369427, "1/157"],
+      "Uncut ruby (ROW)": [0.003184713, "1/314"],
+      "Loop half of key (ROW)": [0.002840909, "1/352"],
+      "Tooth half of key (ROW)": [0.002840909, "1/352"],
+      "Chaos talisman (ROW)": [0.001194743, "1/837"],
+      "Nature talisman (ROW)": [0.001194743, "1/837"],
+      "Uncut diamond (ROW)": [0.000796178, "1/1,256"],
+      "Rune javelin (ROW)": [0.001990446, "1/2,512"],
+      "Rune spear (ROW)": [0.001189061, "1/841"],
+      "Shield left half (ROW)": [0.00059453, "1/1,682"],
+      "Dragon spear (ROW)": [0.000445831, "1/2,243"]
+    };
+    const orderedItems = Object.keys(averageDropRates);
+
+    // ——————————————————————————————————————————————
+    // 2) Aggregator: extract only Level 227
+    // ——————————————————————————————————————————————
+    function extractOutcomesFromLogContent(content) {
+      const lines = content.split(/\r?\n/).filter(l => l.trim());
+      const records = lines.map(l => JSON.parse(l));
+      const summary = {}, kills = {};
+
+      records.forEach(e => {
+        const lvl = e.level, mon = e.name;
+        summary[lvl] ||= {};
+        summary[lvl][mon] ||= {};
+        kills[lvl] ||= {};
+        kills[lvl][mon] = (kills[lvl][mon]||0) + 1;
+        e.drops.forEach(d => {
+          summary[lvl][mon][d.name] = (summary[lvl][mon][d.name]||0) + d.quantity;
+        });
+      });
+
+      // only level 227
+      const outcomes = [];
+      if (summary[227]) {
+        for (const [mon, drops] of Object.entries(summary[227])) {
+          outcomes.push({ level: 227, name: mon, kills: kills[227][mon]||0, drops });
+        }
+      }
+      return outcomes;
+    }
+
+    function parseLogFile(file) {
+      return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          try { res(extractOutcomesFromLogContent(e.target.result)); }
+          catch(err) { rej(err); }
+        };
+        reader.onerror = () => rej(reader.error);
+        reader.readAsText(file);
+      });
+    }
+
+    // ——————————————————————————————————————————————
+    // 3) Render inside your instruction-dialog style
+    // ——————————————————————————————————————————————
+    function showResults(data) {
+      const { kills, drops } = data;
+      const dialog = document.querySelector('.instruction-dialog .instruction-content');
+      let html = `<p><strong>You killed Black dragon ${kills.toLocaleString()} times</strong></p>`;
+      html += `<table class="results-table">
+        <tr><th>Item</th><th>Your Rate</th><th>Kills/Item</th>
+            <th>Rel. Rate</th><th>Δ vs Official</th><th>Official</th></tr>`;
+
+      orderedItems.forEach(item => {
+        const [avg, avgStr] = averageDropRates[item];
+        const cnt = drops[item]||0;
+        if (!cnt) return;
+        const dr = cnt/kills, pd = kills/cnt, rel = dr/avg;
+        let delta = '–';
+        if (rel>1) delta = `+${((rel-1)*100).toFixed(1)}%`;
+        else if (rel<1) delta = `–${((1-rel)*100).toFixed(1)}%`;
+        html += `<tr>
+          <td><span class="item-label">
+                <img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}
+              </span></td>
+          <td>${dr.toFixed(4)}</td>
+          <td>${pd.toFixed(2)}</td>
+          <td>${rel.toFixed(3)}</td>
+          <td>${delta}</td>
+          <td>${avgStr}</td>
+        </tr>`;
+      });
+      html += `</table>
+               <p><strong>Refresh to run again.</strong></p>`;
+      dialog.innerHTML = html;
+    }
+
+    // ——————————————————————————————————————————————
+    // 4) Wire up file input → parse → render
+    // ——————————————————————————————————————————————
+    document.getElementById('logFileInput')
+      .addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const dialog = document.querySelector('.instruction-dialog .instruction-content');
+        dialog.innerHTML = `<p>Parsing log…</p>`;
+        parseLogFile(file)
+          .then(outcomes => {
+            const data = outcomes.find(o => o.name.toLowerCase().includes('black dragon'));
+            if (!data) {
+              dialog.innerHTML = `<p class="error">
+                No Level 227 “Black dragon” found in log.</p>`;
+            } else {
+              showResults(data);
+            }
+          })
+          .catch(err => {
+            dialog.innerHTML = `<p class="error">
+              Error parsing log: ${err.message}</p>`;
+            console.error(err);
+          });
+      });
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Black Dragon Drop Calculator</title>
+  <script src="../jspsych/jspsych.js"></script>
+  <script src="../jspsych/plugin-html-keyboard-response.js"></script>
+  <script src="../jspsych/plugin-survey-html-form.js"></script>
+  <script src="../jspsych/plugin-call-function.js"></script>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 900px;
+      margin: 40px auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .side-image { width: 200px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 20px; }
+    .right-image { margin-left: 20px; }
+    .instruction-content { font-size: 1.1em; text-align: center; color: #000; }
+    .instruction-dialog p { margin: 0.8em 0; }
+    .instruction-dialog input,
+    .instruction-dialog select {
+      padding: 5px;
+      font-size: 1em;
+      margin-top: 5px;
+      width: 100%;
+      max-width: 200px;
+    }
+    .item-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .item-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+      text-align: right;
+      justify-content: flex-end;
+    }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th { background: #eee; }
+  </style>
+  <script>
+    // Updated drop rates for Black Dragons (level 227)
+    const averageDropRates = {
+       "Dragon bones": [1, "Always"],
+      "Black dragonhide": [1, "Always"],
+      "Mithril 2h sword": [0.03125, "1/32"],
+      "Mithril axe": [0.023435669, "1/42.67"],
+      "Mithril battleaxe": [0.023435669, "1/42.67"],
+      "Rune knife": [0.046871338, "1/42.67"],
+      "Mithril kiteshield": [0.0078125, "1/128"],
+      "Adamant platebody": [0.0078125, "1/128"],
+      "Rune longsword": [0.0078125, "1/128"],
+      "Adamant javelin": [4.692382813, "Varies"],
+      "Fire rune": [3.125, "42370"],
+      "Adamant dart(p)": [0.87479497, "1/18.29"],
+      "Law rune": [0.401611328, "Varies"],
+      "Blood rune": [0.351535036, "1/42.67"],
+      "Air rune": [0.5859375, "1/128"],
+      "Coins": [100, "Varies"],
+      "Dragon javelin heads": [0.468823254, "1/21.33"],
+      "Adamantite bar": [0.023435669, "1/42.67"],
+      "Chocolate cake": [0.023435669, "1/42.67"],
+      "Ensouled dragon head": [0.028571429, "12785"],
+      "Brimstone key": [0.013333333, "1/75"],
+      "Clue scroll (hard)": [0.0078125, "1/128"],
+      "Clue scroll (elite)": [0.002, "1/500"],
+      "Draconic visage": [0.0001, "1/10,000"],
+      "Runite bar": [0.000610501, "1/1,638"],
+      "Nature rune": [0.024533138, "1/2,731"],
+      "Rune 2h sword": [0.000366166, "1/2,731"],
+      "Rune battleaxe": [0.000366166, "1/2,731"],
+      "Death rune": [0.010986328, "1/4,096"],
+      "Steel arrow": [0.036621094, "1/4,096"],
+      "Rune arrow": [0.010253906, "1/4,096"],
+      "Rune sq shield": [0.000244141, "1/4,096"],
+      "Dragonstone": [0.000244141, "1/4,096"],
+      "Silver ore": [0.024414063, "1/4,096"],
+      "Rune kiteshield": [0.00012207, "1/8,192"],
+      "Dragon med helm": [0.00012207, "1/8,192"],
+      "Uncut sapphire": [0.006468305, "1/154.6"],
+      "Uncut emerald": [0.003235199, "1/309.1"],
+      "Uncut ruby": [0.001617338, "1/618.3"],
+      "Loop half of key": [0.002643405, "1/378.3"],
+      "Tooth half of key": [0.002643405, "1/378.3"],
+      "Chaos talisman": [0.000606428, "1/1,649"],
+      "Nature talisman": [0.000606428, "1/1,649"],
+      "Uncut diamond": [0.000404367, "1/2,473"],
+      "Rune javelin": [0.001010918, "1/4,946"],
+      "Rune spear": [0.000127081, "1/7,869"],
+      "Shield left half": [0.0000635405, "1/15,738"],
+      "Dragon spear": [0.0000476531, "1/20,985"],
+      // ROW variants
+      "Uncut sapphire (ROW)": [0.012738854, "1/78.5"],
+      "Uncut emerald (ROW)": [0.006369427, "1/157"],
+      "Uncut ruby (ROW)": [0.003184713, "1/314"],
+      "Loop half of key (ROW)": [0.002840909, "1/352"],
+      "Tooth half of key (ROW)": [0.002840909, "1/352"],
+      "Chaos talisman (ROW)": [0.001194743, "1/837"],
+      "Nature talisman (ROW)": [0.001194743, "1/837"],
+      "Uncut diamond (ROW)": [0.000796178, "1/1,256"],
+      "Rune javelin (ROW)": [0.001990446, "1/2,512"],
+      "Rune spear (ROW)": [0.001189061, "1/841"],
+      "Shield left half (ROW)": [0.00059453, "1/1,682"],
+      "Dragon spear (ROW)": [0.000445831, "1/2,243"]
+    };
+
+    const orderedItems = Object.keys(averageDropRates);
+    let calculationResults;
+
+ const createInstructionDialog = content => `
+      <div style="display: flex; align-items: center; justify-content: center;">
+        <img class="side-image left-image" src="../imgs/Black dragon.png" alt="Black dragon">
+        <div class="instruction-dialog"><div class="instruction-content">${content}</div></div>
+        <img class="side-image right-image" src="../imgs/Black dragon.png" alt="Black dragon">
+      </div>`;
+
+    const jsPsych = initJsPsych();
+
+    const combined_input_trial = {
+      type: jsPsychSurveyHtmlForm,
+      html: createInstructionDialog(`
+        <p><strong>Welcome to the Kill & Drop Rate Calculator.</strong></p>
+        <p><em>Note: Items surrounded by plus signs (+) indicate average drop quantities.</em></p>
+        <p>Please enter your overall kills and how many of each item you obtained from Black dragon.</p>
+        <div class="item-entry">
+          <strong>Overall Kills:</strong>
+          <input name="kills" type="number" step="1" min="1" placeholder="e.g. 1000" required>
+        </div>
+        ${orderedItems.map(item => `
+          <div class="item-entry">
+            <span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}:</span>
+            <input name="${item}" type="number" step="1" min="0" placeholder="0">
+          </div>`).join('')}
+      `),
+      button_label: 'Submit'
+    };
+
+    const calculate_trial = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const raw = jsPsych.data.get().last(1).values()[0].response;
+        const resp = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const kills = parseFloat(resp.kills);
+        if (isNaN(kills) || kills <= 0) {
+          calculationResults = { error: 'Please enter a valid positive number of kills.' };
+          return;
+        }
+        const results = {};
+        for (const item of orderedItems) {
+          const [avgDrop, _] = averageDropRates[item];
+          const count = parseFloat(resp[item]) || 0;
+          const dropRate = count / kills;
+          const perDrop = count > 0 ? kills / count : Infinity;
+          const relative = dropRate / avgDrop;
+          results[item] = { count, dropRate, perDrop, relative };
+        }
+        calculationResults = results;
+      }
+    };
+
+    const feedback_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      choices: [],
+      stimulus: () => {
+        if (calculationResults.error) {
+          return createInstructionDialog(`<p>${calculationResults.error}</p><p><strong>To restart, please press F5 on your keyboard.</strong></p>`);
+        }
+        let table = `<table class="results-table">
+          <tr><th>Item</th><th>Your Drop Rate</th><th>Kills per Item</th><th>Relative Rate</th><th>Comparison</th><th>Official Rate</th></tr>`;
+        for (const item of orderedItems) {
+          const stats = calculationResults[item];
+          if (stats.count === 0) continue;
+          const [_, officialRateStr] = averageDropRates[item];
+          const dr = stats.dropRate.toFixed(4);
+          const kd = stats.perDrop === Infinity ? '∞' : stats.perDrop.toFixed(2);
+          const rr = stats.relative.toFixed(4);
+          let cmp = '–';
+          if (stats.relative > 1) cmp = `${((stats.relative - 1) * 100).toFixed(1)}% ↑`;
+          else if (stats.relative < 1) cmp = `${((1 - stats.relative) * 100).toFixed(1)}% ↓`;
+          table += `<tr>
+              <td><span class="item-label"><img class="item-icon" src="../imgs/${item}.png" alt="${item}"> ${item}</span></td>
+              <td>${dr}</td><td>${kd}</td><td>${rr}</td><td>${cmp}</td><td>${officialRateStr}</td>
+            </tr>`;
+        }
+        table += `</table>`;
+        return createInstructionDialog(`
+        <p><strong>Here are your results for Black dragon:</strong></p>${table}<p><strong>To do another calculation, press F5 on your keyboard to refresh this page.</strong></p>
+        <div style=\"margin-top: 20px;\"><button onclick=\"window.history.back()\" style=\"padding:10px; margin-right:10px;\">⬅ Back</button><button onclick=\"window.location.href='../index.html'\" style=\"padding:10px;\">🏠 Home</button></div>`);
+      }
+    };
+
+    jsPsych.run([combined_input_trial, calculate_trial, feedback_trial], {
+      display_element: document.getElementById('jspsych-target')
+    });
+  </script>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="../skill-pets.html" style="margin-right: 20px; padding: 10px 20px; background: #e0e0e0; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding: 10px 20px; background: #fdd835; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">🏠 Home</a>
+  </div>
+
+  <div style="text-align: center; margin-top: 20px;">
+    <button onclick="window.history.back()" style="padding:10px; margin-right:10px;">⬅ Back</button>
+    <button onclick="window.location.href='../index.html'" style="padding:10px;">🏠 Home</button>
+  </div>
+
+</body>
+</html>
