@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OSRS XP Needed Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 700px;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    input, select, button {
+      padding: 10px;
+      font-size: 1em;
+      margin: 10px 0;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    .xp-table {
+      margin-top: 20px;
+      font-size: 0.9em;
+      text-align: left;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 8px;
+    }
+    th {
+      background: #eee;
+    }
+    .copy-button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    .item-icon {
+      width: 24px;
+      height: 24px;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>OSRS XP Needed Calculator</h2>
+
+    <label>Current XP:</label>
+    <input type="number" id="currentXp" placeholder="e.g., 200000">
+
+    <label>Target Level (2-99):</label>
+    <input type="number" id="targetLevel" min="2" max="99" placeholder="e.g., 60">
+
+    <label>Bow Type:</label>
+    <select id="mode">
+      <option value="unstrung">Unstrung</option>
+      <option value="strung">Strung</option>
+    </select>
+
+    <button onclick="calculateXpNeeded()">Calculate</button>
+    <button class="copy-button" onclick="copyTable()">Copy Table</button>
+
+    <div class="result" id="result"></div>
+    <div class="xp-table" id="xpTable"></div>
+  </div>
+
+  <script>
+    const levelXpTable = {
+      1: 0, 2: 83, 3: 174, 4: 276, 5: 388, 6: 512, 7: 650, 8: 801, 9: 969, 10: 1154,
+      11: 1358, 12: 1584, 13: 1833, 14: 2107, 15: 2411, 16: 2746, 17: 3115, 18: 3523, 19: 3973, 20: 4470,
+      21: 5018, 22: 5624, 23: 6291, 24: 7028, 25: 7842, 26: 8740, 27: 9730, 28: 10824, 29: 12031, 30: 13363,
+      31: 14833, 32: 16456, 33: 18247, 34: 20224, 35: 22406, 36: 24815, 37: 27473, 38: 30408, 39: 33648, 40: 37224,
+      41: 41171, 42: 45529, 43: 50339, 44: 55649, 45: 61512, 46: 67983, 47: 75127, 48: 83014, 49: 91721, 50: 101333,
+      51: 111945, 52: 123660, 53: 136594, 54: 150872, 55: 166636, 56: 184040, 57: 203254, 58: 224466, 59: 247886, 60: 273742,
+      61: 302288, 62: 333804, 63: 368599, 64: 407015, 65: 449428, 66: 496254, 67: 547953, 68: 605032, 69: 668051, 70: 737627,
+      71: 814445, 72: 899257, 73: 992895, 74: 1096278, 75: 1210421, 76: 1336443, 77: 1475581, 78: 1629200, 79: 1798808, 80: 1986068,
+      81: 2192818, 82: 2421087, 83: 2673114, 84: 2951373, 85: 3258594, 86: 3597792, 87: 3972294, 88: 4385776, 89: 4842295, 90: 5346332,
+      91: 5902831, 92: 6517253, 93: 7195629, 94: 7944614, 95: 8771558, 96: 9684577, 97: 10692629, 98: 11805606, 99: 13034431
+    };
+
+    const itemXp = {
+      "Shortbow (u)": [5, 2.117647],
+      "Longbow (u)": [10, 2.117647],
+      "Oak shortbow (u)": [16.5, 2.117647],
+      "Oak longbow (u)": [25, 2.117647],
+      "Willow shortbow (u)": [33.3, 2.117647],
+      "Willow longbow (u)": [41.5, 2.117647],
+      "Maple shortbow (u)": [50, 2.117647],
+      "Maple longbow (u)": [58.3, 2.117647],
+      "Yew shortbow (u)": [67.5, 2.117647],
+      "Yew longbow (u)": [75, 2.117647],
+      "Magic shortbow (u)": [83.3, 2.117647],
+      "Magic longbow (u)": [91.5, 2.117647],
+
+      "Shortbow": [5, 1.5],
+      "Longbow": [10, 1.5],
+      "Oak shortbow": [16.5, 1.5],
+      "Oak longbow": [25, 1.5],
+      "Willow shortbow": [33.3, 1.5],
+      "Willow longbow": [41.5, 1.5],
+      "Maple shortbow": [50, 1.5],
+      "Maple longbow": [58.3, 1.5],
+      "Yew shortbow": [67.5, 1.5],
+      "Yew longbow": [75, 1.5],
+      "Magic shortbow": [83.3, 1.5],
+      "Magic longbow": [91.5, 1.5]
+    };
+
+    function calculateXpNeeded() {
+      const currentXp = parseInt(document.getElementById("currentXp").value);
+      const targetLevel = parseInt(document.getElementById("targetLevel").value);
+      const mode = document.getElementById("mode").value;
+      const resultDiv = document.getElementById("result");
+      const xpTableDiv = document.getElementById("xpTable");
+
+      if (isNaN(currentXp) || isNaN(targetLevel)) {
+        resultDiv.textContent = "Please enter valid numbers for all fields.";
+        return;
+      }
+      if (targetLevel < 2 || targetLevel > 99) {
+        resultDiv.textContent = "Target level must be between 2 and 99.";
+        return;
+      }
+
+      const targetXp = levelXpTable[targetLevel];
+      const xpNeeded = targetXp - currentXp;
+
+      if (xpNeeded <= 0) {
+        resultDiv.textContent = `You already have enough XP for level ${targetLevel}.`;
+        xpTableDiv.innerHTML = "";
+        return;
+      }
+
+      resultDiv.textContent = `You need ${xpNeeded.toLocaleString()} XP to reach level ${targetLevel}.`;
+
+      let table = `<table id="xpResultTable"><tr><th>Item</th><th>XP/Item</th><th>Bows Needed</th><th>XP/Hour</th></tr>`;
+      for (const [item, [xp, seconds]] of Object.entries(itemXp)) {
+        const isUnstrung = item.includes("(u)");
+        if ((mode === 'unstrung' && !isUnstrung) || (mode === 'strung' && isUnstrung)) continue;
+        const count = Math.ceil(xpNeeded / xp);
+        const xpPerHour = (xp / seconds) * 3600;
+        const iconName = item.replace(/ \(u\)/, '').replace(/ /g, '_') + '.png';
+        table += `<tr><td><img src="../imgs/${iconName}" class="item-icon"> ${item}</td><td>${xp}</td><td>${count.toLocaleString()}</td><td>${xpPerHour.toFixed(0)}</td></tr>`;
+      }
+      table += `</table>`;
+      xpTableDiv.innerHTML = `<h4>Fletching Bows Needed and XP Rates:</h4>` + table;
+    }
+
+    function copyTable() {
+      const table = document.getElementById("xpResultTable");
+      if (!table) return;
+      const range = document.createRange();
+      range.selectNode(table);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      try {
+        document.execCommand("copy");
+        alert("Table copied to clipboard!");
+      } catch (err) {
+        alert("Failed to copy table.");
+      }
+      selection.removeAllRanges();
+    }
+  </script>
+</body>
+</html>
