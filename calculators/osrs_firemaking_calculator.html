@@ -1,7 +1,8 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-  <title>OSRS XP Needed Calculator</title>
+  <title>OSRS Firemaking Calculator</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -14,7 +15,7 @@
       background: rgba(255, 255, 255, 0.95);
       border-radius: 10px;
       padding: 20px;
-      max-width: 700px;
+      max-width: 800px;
       margin: 0 auto;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
@@ -63,18 +64,18 @@
 </head>
 <body>
   <div class="container">
-    <h2>OSRS XP Needed Calculator</h2>
+    <h2>OSRS Firemaking Calculator</h2>
 
     <label>Current XP:</label>
     <input type="number" id="currentXp" placeholder="e.g., 200000">
 
-    <label>Target Level (2-99):</label>
+    <br><label>Target Level (2-99):</label>
     <input type="number" id="targetLevel" min="2" max="99" placeholder="e.g., 60">
 
-    <label>Bow Type:</label>
+    <br><label>Firemaking Method:</label>
     <select id="mode">
-      <option value="unstrung">Unstrung</option>
-      <option value="strung">Strung</option>
+      <option value="lines">Lines</option>
+      <option value="bonfires">Bonfires</option>
     </select>
 
     <button onclick="calculateXpNeeded()">Calculate</button>
@@ -98,32 +99,10 @@
       91: 5902831, 92: 6517253, 93: 7195629, 94: 7944614, 95: 8771558, 96: 9684577, 97: 10692629, 98: 11805606, 99: 13034431
     };
 
-    const itemXp = {
-      "Shortbow (u)": [5, 2.117647],
-      "Longbow (u)": [10, 2.117647],
-      "Oak shortbow (u)": [16.5, 2.117647],
-      "Oak longbow (u)": [25, 2.117647],
-      "Willow shortbow (u)": [33.3, 2.117647],
-      "Willow longbow (u)": [41.5, 2.117647],
-      "Maple shortbow (u)": [50, 2.117647],
-      "Maple longbow (u)": [58.3, 2.117647],
-      "Yew shortbow (u)": [67.5, 2.117647],
-      "Yew longbow (u)": [75, 2.117647],
-      "Magic shortbow (u)": [83.3, 2.117647],
-      "Magic longbow (u)": [91.5, 2.117647],
-
-      "Shortbow": [5, 1.5],
-      "Longbow": [10, 1.5],
-      "Oak shortbow": [16.5, 1.5],
-      "Oak longbow": [25, 1.5],
-      "Willow shortbow": [33.3, 1.5],
-      "Willow longbow": [41.5, 1.5],
-      "Maple shortbow": [50, 1.5],
-      "Maple longbow": [58.3, 1.5],
-      "Yew shortbow": [67.5, 1.5],
-      "Yew longbow": [75, 1.5],
-      "Magic shortbow": [83.3, 1.5],
-      "Magic longbow": [91.5, 1.5]
+    const logsXp = {
+      "Normal": 40, "Oak": 60, "Willow": 90, "Teak": 105, "Artic pine": 125,
+      "Maple": 135, "Mahogany": 157.5, "Yew": 202.5, "Blisterwood": 96,
+      "Magic": 303.8, "Redwood": 350
     };
 
     function calculateXpNeeded() {
@@ -153,17 +132,27 @@
 
       resultDiv.textContent = `You need ${xpNeeded.toLocaleString()} XP to reach level ${targetLevel}.`;
 
-      let table = `<table id="xpResultTable"><tr><th>Item</th><th>XP/Item</th><th>Bows Needed</th><th>XP/Hour</th></tr>`;
-      for (const [item, [xp, seconds]] of Object.entries(itemXp)) {
-        const isUnstrung = item.includes("(u)");
-        if ((mode === 'unstrung' && !isUnstrung) || (mode === 'strung' && isUnstrung)) continue;
-        const count = Math.ceil(xpNeeded / xp);
-        const xpPerHour = (xp / seconds) * 3600;
-        const iconName = item.replace(/ \(u\)/, '').replace(/ /g, '_') + '.png';
-        table += `<tr><td><img src="../imgs/${iconName}" class="item-icon"> ${item}</td><td>${xp}</td><td>${count.toLocaleString()}</td><td>${xpPerHour.toFixed(0)}</td></tr>`;
+      const secondsPerLog = mode === 'bonfires' ? 2.4 : 3.0;
+
+      let table = `<table id="xpResultTable"><tr><th>Log Type</th><th>XP/Log</th><th>Logs Needed</th><th>XP/Hour</th><th>Hours</th><th>Days (24h)</th></tr>`;
+      for (const [log, baseXp] of Object.entries(logsXp)) {
+        const xp = mode === 'bonfires' ? baseXp / 3 : baseXp;
+        const logsNeeded = Math.ceil(xpNeeded / xp);
+        const xpPerHour = (xp / secondsPerLog) * 3600;
+        const hours = xpNeeded / xpPerHour;
+        const days = hours / 24;
+        const iconName = log + '.png';
+        table += `<tr>
+          <td><img src="../imgs/${iconName}" class="item-icon"> ${log}</td>
+          <td>${xp.toFixed(2)}</td>
+          <td>${logsNeeded.toLocaleString()}</td>
+          <td>${xpPerHour.toFixed(0)}</td>
+          <td>${hours.toFixed(2)}</td>
+          <td>${days.toFixed(2)}</td>
+        </tr>`;
       }
       table += `</table>`;
-      xpTableDiv.innerHTML = `<h4>Fletching Bows Needed and XP Rates:</h4>` + table;
+      xpTableDiv.innerHTML = `<h4>Logs Needed and XP Rates (Firemaking - ${mode.charAt(0).toUpperCase() + mode.slice(1)}):</h4>` + table;
     }
 
     function copyTable() {
