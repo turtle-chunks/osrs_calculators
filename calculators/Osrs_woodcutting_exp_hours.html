@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>OSRS Woodcutting Calculator</title>
+<style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    input, select, button {
+      padding: 10px;
+      font-size: 1em;
+      margin: 10px 0;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    .result, .xp-table {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 8px;
+    }
+    th {
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+<h2>OSRS Woodcutting Calculator</h2>
+
+<label>Current XP:</label>
+<input id="currentXp" placeholder="e.g., 200000" type="number"/>
+
+<br><label>Target Level (2-99):</label>
+<input id="targetLevel" max="99" min="2" placeholder="e.g., 60" type="number"/>
+
+<br><label>Select Your Axe:</label>
+<select id="axe">
+<option value="Bronze">Bronze axe</option>
+<option value="Iron">Iron axe</option>
+<option value="Steel">Steel axe</option>
+<option value="Black">Black axe</option>
+<option value="Mithril">Mithril axe</option>
+<option value="Adamant">Adamant axe</option>
+<option value="Rune">Rune axe</option>
+<option value="Dragon">Dragon axe</option>
+<option value="Crystal">Crystal axe</option>
+</select>
+
+<button onclick="calculateWoodcutting()">Calculate</button>
+<div class="result" id="result"></div>
+<div class="xp-table" id="xpTable"></div>
+</div>
+<script>
+  const axeMinLevel = {
+  "Bronze": 1,
+  "Iron": 1,
+  "Steel": 6,
+  "Black": 11,
+  "Mithril": 21,
+  "Adamant": 31,
+  "Rune": 41,
+  "Dragon": 61,
+  "Crystal": 71
+};
+
+
+const levelXpTable = {
+      1: 0, 2: 83, 3: 174, 4: 276, 5: 388, 6: 512, 7: 650, 8: 801, 9: 969, 10: 1154,
+      11: 1358, 12: 1584, 13: 1833, 14: 2107, 15: 2411, 16: 2746, 17: 3115, 18: 3523, 19: 3973, 20: 4470,
+      21: 5018, 22: 5624, 23: 6291, 24: 7028, 25: 7842, 26: 8740, 27: 9730, 28: 10824, 29: 12031, 30: 13363,
+      31: 14833, 32: 16456, 33: 18247, 34: 20224, 35: 22406, 36: 24815, 37: 27473, 38: 30408, 39: 33648, 40: 37224,
+      41: 41171, 42: 45529, 43: 50339, 44: 55649, 45: 61512, 46: 67983, 47: 75127, 48: 83014, 49: 91721, 50: 101333,
+      51: 111945, 52: 123660, 53: 136594, 54: 150872, 55: 166636, 56: 184040, 57: 203254, 58: 224466, 59: 247886, 60: 273742,
+      61: 302288, 62: 333804, 63: 368599, 64: 407015, 65: 449428, 66: 496254, 67: 547953, 68: 605032, 69: 668051, 70: 737627,
+      71: 814445, 72: 899257, 73: 992895, 74: 1096278, 75: 1210421, 76: 1336443, 77: 1475581, 78: 1629200, 79: 1798808, 80: 1986068,
+      81: 2192818, 82: 2421087, 83: 2673114, 84: 2951373, 85: 3258594, 86: 3597792, 87: 3972294, 88: 4385776, 89: 4842295, 90: 5346332,
+      91: 5902831, 92: 6517253, 93: 7195629, 94: 7944614, 95: 8771558, 96: 9684577, 97: 10692629, 98: 11805606, 99: 13034431
+};
+
+const logXpPerLog = {
+  'Normal': 25,
+  'Oak': 37.5,
+  'Willow': 67.5,
+  'Teak': 85,
+  'Maple': 100,
+  'Mahogany': 125,
+  'Yew': 175,
+  'Magic': 250,
+  'Redwood': 380
+};
+
+const axeLogsPerMinute = {
+  "Normal": {
+    "Bronze": [
+      6.3475,
+      9.0825,
+      11.8175,
+      14.4525,
+      17.1875,
+      19.63
+    ],
+    "Iron": [
+      9.4725,
+      13.575,
+      17.5775,
+      21.68,
+      25,
+      25
+    ],
+    "Steel": [
+      13.965,
+      18.0675,
+      23.4375,
+      25,
+      25,
+      25
+    ],
+    "Black": [
+      17.1875,
+      20.215,
+      25,
+      25,
+      25,
+      25
+    ],
+    "Mithril": [
+      22.1675,
+      22.46,
+      25,
+      25,
+      25,
+      25
+    ],
+    "Adamant": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ],
+    "Rune": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ],
+    "Dragon": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ],
+    "Crystal": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ]
+  },
+  "Oak": {
+    "Bronze": [
+      4.2,
+      4.59,
+      5.9575,
+      7.2275,
+      8.6925,
+      9.8625
+    ],
+    "Iron": [
+      6.25,
+      6.835,
+      8.8875,
+      10.84,
+      12.89,
+      14.6475
+    ],
+    "Steel": [
+      8.2025,
+      9.0825,
+      11.8175,
+      14.4525,
+      17.1875,
+      19.63
+    ],
+    "Black": [
+      9.2775,
+      10.1575,
+      13.1825,
+      16.3075,
+      19.335,
+      22.07
+    ],
+    "Mithril": [
+      11.3275,
+      11.335,
+      14.6475,
+      17.87,
+      21.485,
+      24.625
+    ],
+    "Adamant": [
+      15.5275,
+      15.5275,
+      17.5775,
+      21.68,
+      25,
+      25
+    ],
+    "Rune": [
+      20.5075,
+      20.5075,
+      20.5075,
+      25,
+      25,
+      25
+    ],
+    "Dragon": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ],
+    "Crystal": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ]
+  },
+  "Willow": {
+    "Bronze": [
+      4.2,
+      4.59,
+      5.9575,
+      7.2275,
+      8.6925,
+      9.8625
+    ],
+    "Iron": [
+      6.25,
+      6.835,
+      8.8875,
+      10.84,
+      12.89,
+      14.6475
+    ],
+    "Steel": [
+      8.2025,
+      9.0825,
+      11.8175,
+      14.4525,
+      17.1875,
+      19.63
+    ],
+    "Black": [
+      9.2775,
+      10.1575,
+      13.1825,
+      16.3075,
+      19.335,
+      22.07
+    ],
+    "Mithril": [
+      11.3275,
+      11.335,
+      14.6475,
+      17.87,
+      21.485,
+      24.625
+    ],
+    "Adamant": [
+      15.5275,
+      15.5275,
+      17.5775,
+      21.68,
+      25,
+      25
+    ],
+    "Rune": [
+      20.5075,
+      20.5075,
+      20.5075,
+      25,
+      25,
+      25
+    ],
+    "Dragon": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ],
+    "Crystal": [
+      25,
+      25,
+      25,
+      25,
+      25,
+      25
+    ]
+  },
+  "Teak": {
+    "Bronze": [
+      2.6375,
+      2.6375,
+      2.8325,
+      3.4175,
+      4.005,
+      4.59
+    ],
+    "Iron": [
+      3.9075,
+      3.9075,
+      4.2,
+      5.175,
+      6.055,
+      6.9325
+    ],
+    "Steel": [
+      5.2725,
+      5.2725,
+      5.5675,
+      6.835,
+      8.105,
+      9.18
+    ],
+    "Black": [
+      5.7625,
+      5.7625,
+      6.1525,
+      7.52,
+      8.8875,
+      10.0575
+    ],
+    "Mithril": [
+      6.5425,
+      6.5425,
+      7.0325,
+      8.595,
+      10.1575,
+      11.5225
+    ],
+    "Adamant": [
+      7.8125,
+      7.8125,
+      8.3975,
+      10.255,
+      12.11,
+      13.77
+    ],
+    "Rune": [
+      9.765,
+      9.765,
+      9.765,
+      12.0125,
+      14.16,
+      16.1125
+    ],
+    "Dragon": [
+      13.77,
+      13.77,
+      13.77,
+      13.77,
+      16.3075,
+      18.6525
+    ],
+    "Crystal": [
+      15.7225,
+      15.7225,
+      15.7225,
+      15.7225,
+      17.09,
+      19.63
+    ]
+  },
+  "Maple": {
+    "Bronze": [
+      1.66,
+      1.66,
+      1.66,
+      1.855,
+      2.245,
+      2.54
+    ],
+    "Iron": [
+      2.345,
+      0.8475,
+      2.345,
+      2.735,
+      3.2225,
+      3.71
+    ],
+    "Steel": [
+      3.125,
+      3.125,
+      3.125,
+      3.71,
+      4.395,
+      4.98
+    ],
+    "Black": [
+      3.515,
+      3.515,
+      3.515,
+      4.1025,
+      4.8825,
+      5.5675
+    ],
+    "Mithril": [
+      3.9075,
+      3.9075,
+      3.9075,
+      4.59,
+      5.37,
+      6.1525
+    ],
+    "Adamant": [
+      4.6875,
+      4.6875,
+      4.6875,
+      5.47,
+      6.5425,
+      7.4225
+    ],
+    "Rune": [
+      5.37,
+      5.37,
+      5.37,
+      6.3475,
+      7.52,
+      8.595
+    ],
+    "Dragon": [
+      6.835,
+      6.835,
+      6.835,
+      6.835,
+      8.0075,
+      9.18
+    ],
+    "Crystal": [
+     6.835,
+      6.835,
+      6.835,
+      6.835,
+      8.0075,
+      9.18
+    ]
+  },
+  "Mahogany": {
+    "Bronze": [
+      1.7575,
+      1.7575,
+      1.7575,
+      1.855,
+      2.245,
+      2.54
+    ],
+    "Iron": [
+      2.54,
+      2.54,
+      2.54,
+      2.8325,
+      3.32,
+      3.8075
+    ],
+    "Steel": [
+      3.32,
+      3.32,
+      3.32,
+      3.71,
+      4.395,
+      4.98
+    ],
+    "Black": [
+      3.6125,
+      3.6125,
+      3.6125,
+      4.005,
+      4.6875,
+      5.37
+    ],
+    "Mithril": [
+      4.2,
+      4.2,
+      4.2,
+      4.59,
+      5.47,
+      6.25
+    ],
+    "Adamant": [
+      4.98,
+      4.98,
+      4.98,
+      5.5675,
+      6.5425,
+      7.4225
+    ],
+    "Rune": [
+      5.86,
+      5.86,
+      5.86,
+      6.445,
+      7.6175,
+      6.1925
+    ],
+    "Dragon": [
+      7.0325,
+      7.0325,
+      7.0325,
+      7.0325,
+      8.2025,
+      9.2775
+    ],
+    "Crystal": [
+      7.91,
+      7.91,
+      7.91,
+      7.91,
+      8.495,
+      7.07
+    ]
+  },
+  "Yew": {
+    "Bronze": [
+      0.9775,
+      0.9775,
+      0.9775,
+      0.9775,
+      1.1725,
+      1.27
+    ],
+    "Iron": [
+      1.465,
+      1.465,
+      1.465,
+      1.465,
+      1.7575,
+      1.9525
+    ],
+    "Steel": [
+      1.855,
+      1.855,
+      1.855,
+      1.855,
+      2.245,
+      2.54
+    ],
+    "Black": [
+      2.05,
+      2.05,
+      2.05,
+      2.1475,
+      2.54,
+      2.8325
+    ],
+    "Mithril": [
+      2.345,
+      2.345,
+      2.345,
+      2.345,
+      2.735,
+      3.125
+    ],
+    "Adamant": [
+      2.735,
+      2.735,
+      2.735,
+      2.735,
+      3.2225,
+      3.71
+    ],
+    "Rune": [
+      3.2225,
+      3.2225,
+      3.2225,
+      3.2225,
+      3.8075,
+      4.395
+    ],
+    "Dragon": [
+      3.515,
+      3.515,
+      3.515,
+      3.515,
+      4.1025,
+      4.6875
+    ],
+    "Crystal": [
+     3.515,
+      3.515,
+      3.515,
+      3.515,
+      4.1025,
+      4.6875
+    ]
+  },
+  "Magic": {
+    "Bronze": [
+      0.585,
+      0.585,
+      0.585,
+      0.585,
+      0.585,
+      0.6825
+    ],
+    "Iron": [
+      0.88,
+      0.88,
+      0.88,
+      0.88,
+      0.88,
+      0.9775
+    ],
+    "Steel": [
+      1.075,
+      1.075,
+      1.075,
+      1.075,
+      1.1725,
+      1.27
+    ],
+    "Black": [
+      1.1725,
+      1.1725,
+      1.1725,
+      1.1725,
+      1.27,
+      1.3675
+    ],
+    "Mithril": [
+      1.3675,
+      1.3675,
+      1.3675,
+      1.3675,
+      1.3675,
+      1.5625
+    ],
+    "Adamant": [
+      1.5625,
+      1.5625,
+      1.5625,
+      1.5625,
+      1.66,
+      1.855
+    ],
+    "Rune": [
+      1.855,
+      1.855,
+      1.855,
+      1.855,
+      1.855,
+      2.1475
+    ],
+    "Dragon": [
+      1.855,
+      1.855,
+      1.855,
+      1.855,
+      1.9525,
+      2.245
+    ],
+    "Crystal": [
+        1.855,
+      1.855,
+      1.855,
+      1.855,
+      1.9525,
+      2.245
+    ]
+  },
+  "Redwood": {
+    "Bronze": [
+      0.6825,
+      0.6825,
+      0.6825,
+      0.6825,
+      0.6825,
+      0.6825
+    ],
+    "Iron": [
+      0.88,
+      0.88,
+      0.88,
+      0.88,
+      0.88,
+      0.9775
+    ],
+    "Steel": [
+      1.1725,
+      1.1725,
+      1.1725,
+      1.1725,
+      1.1725,
+      1.27
+    ],
+    "Black": [
+      1.3675,
+      1.3675,
+      1.3675,
+      1.3675,
+      1.3675,
+      1.465
+    ],
+    "Mithril": [
+      1.465,
+      1.465,
+      1.465,
+      1.465,
+      1.465,
+      1.5625
+    ],
+    "Adamant": [
+      1.7575,
+      1.7575,
+      1.7575,
+      1.7575,
+      1.7575,
+      1.855
+    ],
+    "Rune": [
+      2.05,
+      2.05,
+      2.05,
+      2.05,
+      2.05,
+      2.1475
+    ],
+    "Dragon": [
+      2.8325,
+      2.8325,
+      2.8325,
+      2.8325,
+      2.8325,
+      3.0275
+    ],
+    "Crystal": [
+      0,
+      3.32,
+      3.32,
+      3.32,
+      3.32,
+      3.515
+    ]
+  }
+};
+
+const levelBrackets = [20, 40, 60, 80, 98, 99];
+
+function getLevelFromXP(xp) {
+  let level = 1;
+  for (const [lvl, requiredXP] of Object.entries(levelXpTable)) {
+    if (xp >= requiredXP) level = parseInt(lvl);
+    else break;
+  }
+  return level;
+}
+
+function calculateWoodcutting() {
+  const currentXp = parseInt(document.getElementById("currentXp").value);
+  const targetLevel = parseInt(document.getElementById("targetLevel").value);
+  const axe = document.getElementById("axe").value;
+  const resultDiv = document.getElementById("result");
+  const xpTableDiv = document.getElementById("xpTable");
+
+  if (isNaN(currentXp) || isNaN(targetLevel) || !levelXpTable[targetLevel]) {
+    resultDiv.textContent = "Please enter valid XP and level.";
+    return;
+  }
+
+  const xpNeeded = levelXpTable[targetLevel] - currentXp;
+  if (xpNeeded <= 0) {
+    resultDiv.textContent = `You already have enough XP for level ${targetLevel}.`;
+    xpTableDiv.innerHTML = "";
+    return;
+  }
+
+  const currentLevel = getLevelFromXP(currentXp);
+  if (currentLevel < axeMinLevel[axe]) {
+  resultDiv.textContent = `You need level ${axeMinLevel[axe]} to use a ${axe.toLowerCase()} axe.`;
+  xpTableDiv.innerHTML = "";
+  return;
+}
+
+  let bracketIdx = levelBrackets.findIndex(lvl => currentLevel <= lvl);
+  if (bracketIdx === -1) bracketIdx = 5;
+
+  resultDiv.textContent = `To reach level ${targetLevel} from level ${currentLevel}, you need ${xpNeeded.toLocaleString()} XP.`;
+
+  let tableHTML = `<table>
+    <tr><th>Log Type</th><th>XP/Log</th><th>Logs/Min</th><th>Logs/Hour</th><th>XP/Hour</th><th>Hours</th><th>Days (24h)</th></tr>`;
+
+  for (const logType in logXpPerLog) {
+    const xpPerLog = logXpPerLog[logType];
+    const logsPerMin = (axeLogsPerMinute[logType]?.[axe]?.[bracketIdx]) || 0;
+    const logsPerHour = logsPerMin * 60;
+    const xpPerHour = logsPerHour * xpPerLog;
+    const hours = xpPerHour > 0 ? xpNeeded / xpPerHour : Infinity;
+    const days = hours / 24;
+
+    tableHTML += `<tr>
+      <td>${logType}</td>
+      <td>${xpPerLog}</td>
+      <td>${logsPerMin.toFixed(2)}</td>
+      <td>${logsPerHour.toFixed(0)}</td>
+      <td>${xpPerHour.toFixed(0)}</td>
+      <td>${isFinite(hours) ? hours.toFixed(2) : 'N/A'}</td>
+      <td>${isFinite(days) ? days.toFixed(2) : 'N/A'}</td>
+    </tr>`;
+  }
+
+  tableHTML += `</table>`;
+  xpTableDiv.innerHTML = tableHTML;
+}
+
+</script>
+</body>
+</html>
