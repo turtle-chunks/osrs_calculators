@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -64,7 +63,7 @@
 </head>
 <body>
   <div class="container">
-    <h2>OSRS Firemaking Calculator</h2>
+    <h2>OSRS Firemaking Calculator (Updated)</h2>
 
     <label>Current XP:</label>
     <input type="number" id="currentXp" placeholder="e.g., 200000">
@@ -105,6 +104,15 @@
       "Magic": 303.8, "Redwood": 350
     };
 
+    function getCurrentLevel(xp) {
+      let level = 1;
+      for (let lvl = 1; lvl <= 98; lvl++) {
+        if (xp >= levelXpTable[lvl]) level = lvl;
+        else break;
+      }
+      return level;
+    }
+
     function calculateXpNeeded() {
       const currentXp = parseInt(document.getElementById("currentXp").value);
       const targetLevel = parseInt(document.getElementById("targetLevel").value);
@@ -121,6 +129,7 @@
         return;
       }
 
+      const currentLevel = getCurrentLevel(currentXp);
       const targetXp = levelXpTable[targetLevel];
       const xpNeeded = targetXp - currentXp;
 
@@ -130,13 +139,12 @@
         return;
       }
 
-      resultDiv.textContent = `You need ${xpNeeded.toLocaleString()} XP to reach level ${targetLevel}.`;
+      resultDiv.textContent = `To reach level ${targetLevel} from level ${currentLevel}, you need ${xpNeeded.toLocaleString()} XP.`;
 
-      const secondsPerLog = mode === 'bonfires' ? 2.4 : 3.0;
+      const secondsPerLog = mode === 'bonfires' ? 5.4 : 3.0;
 
       let table = `<table id="xpResultTable"><tr><th>Log Type</th><th>XP/Log</th><th>Logs Needed</th><th>XP/Hour</th><th>Hours</th><th>Days (24h)</th></tr>`;
-      for (const [log, baseXp] of Object.entries(logsXp)) {
-        const xp = mode === 'bonfires' ? baseXp / 3 : baseXp;
+      for (const [log, xp] of Object.entries(logsXp)) {
         const logsNeeded = Math.ceil(xpNeeded / xp);
         const xpPerHour = (xp / secondsPerLog) * 3600;
         const hours = xpNeeded / xpPerHour;
