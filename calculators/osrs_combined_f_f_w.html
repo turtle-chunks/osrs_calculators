@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OSRS Ultimate Planner (Firemaking, Fletching, Woodcutting)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      background: rgba(255,255,255,0.96);
+      border-radius: 10px;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    label { font-weight: bold; }
+    input, select, button {
+      padding: 10px;
+      font-size: 1em;
+      margin: 7px 0;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    .row-flex {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+    .col-inline {
+      display: inline-block;
+      min-width: 130px;
+    }
+    .result, .xp-table { margin-top: 18px; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #bbb; padding: 7px; font-size: 0.97em; }
+    th { background: #eee; }
+    .section-title {
+      background: #ffe877;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 1.2em;
+    }
+    .footnote {
+      color: #888; font-size: 0.9em; margin-top: 10px;
+    }
+    @media (max-width: 600px) {
+      .row-flex { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="section-title">Ultimate Fletch/Fire/Woodcutting Planner</div><br>
+  <br><label>Current Firemaking Experience:</label>
+  <input id="planner_fmXp" type="number" placeholder="e.g., 200000">
+  <br><label>Firemaking Level Goal:</label>
+  <input id="planner_fmLvl" type="number" min="2" max="127" placeholder="e.g., 99">
+
+  <br><label>Current Fletching Experience:</label>
+  <input id="planner_fletchXp" type="number" placeholder="e.g., 200000">
+  <br><label>Fletching Level Goal:</label>
+  <input id="planner_fletchLvl" type="number" min="2" max="127" placeholder="e.g., 99">
+
+  <br><label>Current Woodcutting Experience:</label>
+  <input id="planner_wcXp" type="number" placeholder="e.g., 200000">
+  <br><label>Woodcutting Level Goal (optional):</label>
+  <input id="planner_wcLvl" type="number" min="2" max="127" placeholder="optional">
+
+  <br><label>Log Type for All Skills:</label>
+  <select id="planner_logType">
+    <option value="Normal">Normal</option>
+    <option value="Oak">Oak</option>
+    <option value="Willow">Willow</option>
+    <option value="Teak">Teak</option>
+    <option value="Maple">Maple</option>
+    <option value="Mahogany">Mahogany</option>
+    <option value="Yew">Yew</option>
+    <option value="Magic">Magic</option>
+    <option value="Redwood">Redwood</option>
+  </select>
+
+  <div class="row-flex">
+    <div class="col-inline">
+      <label>Firemaking Method:</label>
+      <select id="planner_fmMode">
+        <option value="lines">Lines</option>
+        <option value="bonfires">Bonfires</option>
+      </select>
+    </div>
+    <div class="col-inline">
+      <label>Bow Type:</label>
+      <select id="planner_fletchBowType">
+        <option value="longbow">Longbow</option>
+        <option value="shortbow">Shortbow</option>
+      </select>
+    </div>
+    <div class="col-inline">
+      <label>Bows: Strung or Unstrung?</label>
+      <select id="planner_fletchMode">
+        <option value="unstrung">Unstrung</option>
+        <option value="strung">Strung</option>
+      </select>
+    </div>
+  </div>
+  <label>Your Axe:</label>
+  <select id="planner_wcAxe">
+    <option value="Bronze">Bronze axe</option>
+    <option value="Iron">Iron axe</option>
+    <option value="Steel">Steel axe</option>
+    <option value="Black">Black axe</option>
+    <option value="Mithril">Mithril axe</option>
+    <option value="Adamant">Adamant axe</option>
+    <option value="Rune">Rune axe</option>
+    <option value="Dragon">Dragon axe</option>
+    <option value="Crystal">Crystal axe</option>
+  </select>
+  <button onclick="calculateUltimatePlanner()">Calculate All</button>
+  <div class="result" id="planner_result"></div>
+  <div class="xp-table" id="planner_table"></div>
+  <div class="footnote">
+    <b>Note:</b> This calculator assumes you use the selected log type for all three skills.<br>
+    For Fletching, it uses the selected bow type and stringing mode for the log.<br>
+    Woodcutting goal is optional and not required.<br>
+    XP/level calculations use first matching bow (for the log type and options).
+  </div>
+</div>
+
+<script>
+const levelXpTable = {
+  1:0,2:83,3:174,4:276,5:388,6:512,7:650,8:801,9:969,10:1154,11:1358,12:1584,13:1833,14:2107,15:2411,16:2746,17:3115,18:3523,19:3973,20:4470,
+  21:5018,22:5624,23:6291,24:7028,25:7842,26:8740,27:9730,28:10824,29:12031,30:13363,31:14833,32:16456,33:18247,34:20224,35:22406,36:24815,
+  37:27473,38:30408,39:33648,40:37224,41:41171,42:45529,43:50339,44:55649,45:61512,46:67983,47:75127,48:83014,49:91721,50:101333,51:111945,
+  52:123660,53:136594,54:150872,55:166636,56:184040,57:203254,58:224466,59:247886,60:273742,61:302288,62:333804,63:368599,64:407015,
+  65:449428,66:496254,67:547953,68:605032,69:668051,70:737627,71:814445,72:899257,73:992895,74:1096278,75:1210421,76:1336443,77:1475581,
+  78:1629200,79:1798808,80:1986068,81:2192818,82:2421087,83:2673114,84:2951373,85:3258594,86:3597792,87:3972294,88:4385776,89:4842295,
+  90:5346332,91:5902831,92:6517253,93:7195629,94:7944614,95:8771558,96:9684577,97:10692629,98:11805606,99:13034431,100:14391160,
+  101:15889109,102:17542976,103:19368992,104:21385073,105:23611006,106:26068632,107:28782069,108:31777943,109:35085654,110:38737661,
+  111:42769801,112:47221641,113:52136869,114:57563718,115:63555443,116:70170840,117:77474828,118:85539082,119:94442737,120:104273167,
+  121:115126838,122:127110260,123:140341028,124:154948977,125:171077457,126:188884740,127:200000000
+};
+const logXpPerLog = {
+  'Normal': 25, 'Oak': 37.5, 'Willow': 67.5, 'Teak': 85, 'Maple': 100,
+  'Mahogany': 125, 'Yew': 175, 'Magic': 250, 'Redwood': 380
+};
+const logsXp = {
+  "Normal": 40, "Oak": 60, "Willow": 90, "Teak": 105, "Artic pine": 125,
+  "Maple": 135, "Mahogany": 157.5, "Yew": 202.5, "Blisterwood": 96,
+  "Magic": 303.8, "Redwood": 350
+};
+const itemXp = {
+  "Shortbow (u)": [5, 2.117647], "Longbow (u)": [10, 2.117647], "Oak shortbow (u)": [16.5, 2.117647],
+  "Oak longbow (u)": [25, 2.117647], "Willow shortbow (u)": [33.3, 2.117647], "Willow longbow (u)": [41.5, 2.117647],
+  "Maple shortbow (u)": [50, 2.117647], "Maple longbow (u)": [58.3, 2.117647], "Yew shortbow (u)": [67.5, 2.117647],
+  "Yew longbow (u)": [75, 2.117647], "Magic shortbow (u)": [83.3, 2.117647], "Magic longbow (u)": [91.5, 2.117647],
+  "Shortbow": [5, 1.5], "Longbow": [10, 1.5], "Oak shortbow": [16.5, 1.5],
+  "Oak longbow": [25, 1.5], "Willow shortbow": [33.3, 1.5], "Willow longbow": [41.5, 1.5],
+  "Maple shortbow": [50, 1.5], "Maple longbow": [58.3, 1.5], "Yew shortbow": [67.5, 1.5],
+  "Yew longbow": [75, 1.5], "Magic shortbow": [83.3, 1.5], "Magic longbow": [91.5, 1.5]
+};
+
+// Axe min level for reference, not needed for XP/hour but may use later
+const axeMinLevel = {
+  "Bronze": 1, "Iron": 1, "Steel": 6, "Black": 11, "Mithril": 21, "Adamant": 31,
+  "Rune": 41, "Dragon": 61, "Crystal": 71
+};
+const axeLogsPerMinute = {
+  "Normal": {"Bronze":[6.35,9.08,11.82,14.45,17.19,19.63],"Iron":[9.47,13.58,17.58,21.68,25,25],"Steel":[13.97,18.07,23.44,25,25,25],"Black":[17.19,20.22,25,25,25,25],"Mithril":[22.17,22.46,25,25,25,25],"Adamant":[25,25,25,25,25,25],"Rune":[25,25,25,25,25,25],"Dragon":[25,25,25,25,25,25],"Crystal":[25,25,25,25,25,25]},
+  "Oak": {"Bronze":[4.2,4.59,5.96,7.23,8.69,9.86],"Iron":[6.25,6.84,8.89,10.84,12.89,14.65],"Steel":[8.2,9.08,11.82,14.45,17.19,19.63],"Black":[9.28,10.16,13.18,16.31,19.34,22.07],"Mithril":[11.33,11.34,14.65,17.87,21.49,24.63],"Adamant":[15.53,15.53,17.58,21.68,25,25],"Rune":[20.51,20.51,20.51,25,25,25],"Dragon":[25,25,25,25,25,25],"Crystal":[25,25,25,25,25,25]},
+  "Willow": {"Bronze":[2.64,2.64,3.03,3.71,4.36,4.80],"Iron":[3.91,3.91,4.49,5.47,6.54,7.42],"Steel":[5.18,5.18,5.96,7.33,8.69,9.86],"Black":[5.76,5.76,6.64,8.2,9.67,11.04],"Mithril":[6.45,6.45,7.42,9.08,10.74,12.30],"Adamant":[8.83,8.89,8.89,10.84,12.89,14.75],"Rune":[10.35,10.35,10.35,12.7,15.04,17.19],"Dragon":[13.58,13.58,13.58,13.58,16.11,18.36],"Crystal":[13.58,13.58,13.58,13.58,16.11,18.36]},
+  "Teak": {"Bronze":[2.64,2.64,2.83,3.42,4.01,4.59],"Iron":[3.91,3.91,4.2,5.18,6.06,6.93],"Steel":[5.27,5.27,5.57,6.83,8.11,9.18],"Black":[5.76,5.76,6.15,7.52,8.89,10.06],"Mithril":[6.54,6.54,7.03,8.59,10.16,11.52],"Adamant":[7.81,7.81,8.4,10.26,12.11,13.77],"Rune":[9.77,9.77,9.77,12.01,14.16,16.11],"Dragon":[13.77,13.77,13.77,13.77,16.31,18.65],"Crystal":[15.72,15.72,15.72,15.72,17.09,19.63]},
+  "Maple": {"Bronze":[1.66,1.66,1.66,1.86,2.25,2.54],"Iron":[2.35,0.85,2.35,2.74,3.22,3.71],"Steel":[3.13,3.13,3.13,3.71,4.39,4.98],"Black":[3.52,3.52,3.52,4.1,4.88,5.57],"Mithril":[3.91,3.91,3.91,4.59,5.37,6.15],"Adamant":[4.69,4.69,4.69,5.47,6.54,7.42],"Rune":[5.37,5.37,5.37,6.35,7.52,8.6],"Dragon":[6.84,6.84,6.84,6.84,8.01,9.18],"Crystal":[6.84,6.84,6.84,6.84,8.01,9.18]},
+  "Mahogany": {"Bronze":[1.76,1.76,1.76,1.86,2.25,2.54],"Iron":[2.54,2.54,2.54,2.83,3.32,3.81],"Steel":[3.32,3.32,3.32,3.71,4.39,4.98],"Black":[3.61,3.61,3.61,4.01,4.69,5.37],"Mithril":[4.2,4.2,4.2,4.59,5.47,6.25],"Adamant":[4.98,4.98,4.98,5.57,6.54,7.42],"Rune":[5.86,5.86,5.86,6.45,7.62,6.19],"Dragon":[7.03,7.03,7.03,7.03,8.2,9.28],"Crystal":[7.91,7.91,7.91,7.91,8.5,7.07]},
+  "Yew": {"Bronze":[0.98,0.98,0.98,0.98,1.17,1.27],"Iron":[1.47,1.47,1.47,1.47,1.76,1.95],"Steel":[1.86,1.86,1.86,1.86,2.25,2.54],"Black":[2.05,2.05,2.05,2.15,2.54,2.83],"Mithril":[2.35,2.35,2.35,2.35,2.74,3.13],"Adamant":[2.74,2.74,2.74,2.74,3.22,3.71],"Rune":[3.22,3.22,3.22,3.22,3.81,4.4],"Dragon":[3.52,3.52,3.52,3.52,4.1,4.69],"Crystal":[3.52,3.52,3.52,3.52,4.1,4.69]},
+  "Magic": {"Bronze":[0.59,0.59,0.59,0.59,0.59,0.68],"Iron":[0.88,0.88,0.88,0.88,0.88,0.98],"Steel":[1.08,1.08,1.08,1.08,1.17,1.27],"Black":[1.17,1.17,1.17,1.17,1.27,1.37],"Mithril":[1.37,1.37,1.37,1.37,1.37,1.56],"Adamant":[1.56,1.56,1.56,1.56,1.66,1.86],"Rune":[1.86,1.86,1.86,1.86,1.86,2.15],"Dragon":[1.86,1.86,1.86,1.86,1.95,2.25],"Crystal":[1.86,1.86,1.86,1.86,1.95,2.25]},
+  "Redwood": {"Bronze":[0.68,0.68,0.68,0.68,0.68,0.68],"Iron":[0.88,0.88,0.88,0.88,0.88,0.98],"Steel":[1.17,1.17,1.17,1.17,1.17,1.27],"Black":[1.37,1.37,1.37,1.37,1.37,1.46],"Mithril":[1.46,1.46,1.46,1.46,1.46,1.56],"Adamant":[1.76,1.76,1.76,1.76,1.76,1.86],"Rune":[2.05,2.05,2.05,2.05,2.05,2.15],"Dragon":[2.83,2.83,2.83,2.83,2.83,3.03],"Crystal":[0,3.32,3.32,3.32,3.32,3.52]}
+};
+const levelBrackets = [20, 40, 60, 80, 98, 99];
+
+function getLevelFromXP(xp) {
+  let level = 1;
+  for (const [lvl, requiredXP] of Object.entries(levelXpTable)) {
+    if (xp >= requiredXP) level = parseInt(lvl);
+    else break;
+  }
+  return level;
+}
+
+function getAxeBracketIdx(lvl) {
+  for (let i = 0; i < levelBrackets.length; i++) {
+    if (lvl <= levelBrackets[i]) return i;
+  }
+  return levelBrackets.length - 1;
+}
+
+function calculateUltimatePlanner() {
+  const logType = document.getElementById("planner_logType").value;
+  const fletchXp = parseInt(document.getElementById("planner_fletchXp").value);
+  const fletchLvl = parseInt(document.getElementById("planner_fletchLvl").value);
+  const fletchMode = document.getElementById("planner_fletchMode").value;
+  const fletchBowType = document.getElementById("planner_fletchBowType").value;
+  const fmXp = parseInt(document.getElementById("planner_fmXp").value);
+  const fmLvl = parseInt(document.getElementById("planner_fmLvl").value);
+  const fmMode = document.getElementById("planner_fmMode").value;
+  const wcXp = parseInt(document.getElementById("planner_wcXp").value);
+  const wcLvl = parseInt(document.getElementById("planner_wcLvl").value) || null;
+  const wcAxe = document.getElementById("planner_wcAxe").value;
+  const resultDiv = document.getElementById("planner_result");
+  const tableDiv = document.getElementById("planner_table");
+
+  if (isNaN(fletchXp) || isNaN(fletchLvl) || isNaN(fmXp) || isNaN(fmLvl) || isNaN(wcXp)) {
+    resultDiv.textContent = "Please fill in all XP and level fields.";
+    tableDiv.innerHTML = "";
+    return;
+  }
+  if (!(logType in logXpPerLog)) {
+    resultDiv.textContent = "Invalid log type.";
+    tableDiv.innerHTML = "";
+    return;
+  }
+  if (!levelXpTable[fletchLvl] || !levelXpTable[fmLvl]) {
+    resultDiv.textContent = "Invalid target levels.";
+    tableDiv.innerHTML = "";
+    return;
+  }
+
+  let bowString = logType.charAt(0).toUpperCase() + logType.slice(1).toLowerCase() + " " + fletchBowType;
+  let bowNameList = Object.keys(itemXp).filter(name =>
+    name.toLowerCase().includes(logType.toLowerCase())
+    && name.toLowerCase().includes(fletchBowType)
+    && (fletchMode === "unstrung" ? name.includes("(u)") : !name.includes("(u)"))
+  );
+  if (bowNameList.length === 0) {
+    resultDiv.textContent = `No ${fletchMode} ${fletchBowType} available for ${logType}!`;
+    tableDiv.innerHTML = "";
+    return;
+  }
+  const fletchBow = bowNameList[0];
+  const [fletchXpPerBow, fletchSecondsPerBow] = itemXp[fletchBow];
+  const fletchNeededXp = levelXpTable[fletchLvl] - fletchXp;
+  const fletchLogsNeeded = fletchNeededXp > 0 ? Math.ceil(fletchNeededXp / fletchXpPerBow) : 0;
+  const fletchXpPerHour = fletchXpPerBow / fletchSecondsPerBow * 3600;
+  const fletchHours = fletchXpPerHour > 0 ? fletchNeededXp / fletchXpPerHour : 0;
+  const fletchDays = fletchHours / 24;
+
+  const fmXpPerLog = logsXp[logType];
+  const fmNeededXp = levelXpTable[fmLvl] - fmXp;
+  const fmLogsNeeded = fmNeededXp > 0 ? Math.ceil(fmNeededXp / fmXpPerLog) : 0;
+  const secondsPerLog = fmMode === "bonfires" ? 5.4 : 3.0;
+  const fmXpPerHour = fmXpPerLog / secondsPerLog * 3600;
+  const fmHours = fmXpPerHour > 0 ? fmNeededXp / fmXpPerHour : 0;
+  const fmDays = fmHours / 24;
+
+  const logsToCut = Math.max(fletchLogsNeeded, fmLogsNeeded);
+  const wcXpPerLog = logXpPerLog[logType];
+  const wcCurrentLevel = getLevelFromXP(wcXp);
+  const bracketIdx = getAxeBracketIdx(wcCurrentLevel);
+  const logsPerMinute = (axeLogsPerMinute[logType] && axeLogsPerMinute[logType][wcAxe] && typeof axeLogsPerMinute[logType][wcAxe][bracketIdx] === "number")
+    ? axeLogsPerMinute[logType][wcAxe][bracketIdx]
+    : 0;
+  const wcXpPerHour = logsPerMinute * 60 * wcXpPerLog;
+  const wcNeededXp = logsToCut * wcXpPerLog;
+  const wcHours = wcXpPerHour > 0 ? wcNeededXp / wcXpPerHour : 0;
+  const wcDays = wcHours / 24;
+  const wcFinalXp = wcXp + wcNeededXp;
+  const wcFinalLevel = getLevelFromXP(wcFinalXp);
+
+  let wcGoalResult = "";
+  if (wcLvl && levelXpTable[wcLvl]) {
+    const wcGoalXp = levelXpTable[wcLvl];
+    if (wcFinalXp >= wcGoalXp) {
+      wcGoalResult = `<span style="color:#070;">You will reach your Woodcutting goal!</span>`;
+    } else {
+      wcGoalResult = `<span style="color:#900;">You will be ${wcGoalXp-wcFinalXp} XP short of level ${wcLvl}.</span>`;
+    }
+  }
+
+  // Calculate totals (sum of all hours/days)
+  const totalHours = fletchHours + fmHours + wcHours;
+  const totalDays = fletchDays + fmDays + wcDays;
+
+  let html = `<table>
+    <tr>
+      <th>Skill</th>
+      <th>Log Type</th>
+      <th>XP per Log</th>
+      <th>Logs Needed</th>
+      <th>Total XP</th>
+      <th>Level After</th>
+      <th>XP/Hour</th>
+      <th>Hours</th>
+      <th>Days</th>
+    </tr>
+    <tr>
+      <td>Fletching (${fletchBow})</td>
+      <td>${logType}</td>
+      <td>${fletchXpPerBow}</td>
+      <td>${fletchLogsNeeded.toLocaleString()}</td>
+      <td>${(fletchLogsNeeded * fletchXpPerBow).toLocaleString()}</td>
+      <td>${fletchLvl} (target)</td>
+      <td>${Math.round(fletchXpPerHour).toLocaleString()}</td>
+      <td>${fletchHours.toFixed(2)}</td>
+      <td>${fletchDays.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <td>Firemaking (${fmMode})</td>
+      <td>${logType}</td>
+      <td>${fmXpPerLog}</td>
+      <td>${fmLogsNeeded.toLocaleString()}</td>
+      <td>${(fmLogsNeeded * fmXpPerLog).toLocaleString()}</td>
+      <td>${fmLvl} (target)</td>
+      <td>${Math.round(fmXpPerHour).toLocaleString()}</td>
+      <td>${fmHours.toFixed(2)}</td>
+      <td>${fmDays.toFixed(2)}</td>
+    </tr>
+    <tr style="font-weight:bold;background:#eef;">
+      <td>Woodcutting (${wcAxe})</td>
+      <td>${logType}</td>
+      <td>${wcXpPerLog}</td>
+      <td>${logsToCut.toLocaleString()} <small>(max of above)</small></td>
+      <td>${wcNeededXp.toLocaleString()}</td>
+      <td>${wcFinalLevel} (was ${wcCurrentLevel})</td>
+      <td>${Math.round(wcXpPerHour).toLocaleString()}</td>
+      <td>${wcHours.toFixed(2)}</td>
+      <td>${wcDays.toFixed(2)}</td>
+    </tr>
+    <tr style="background:#f7f7ff;">
+      <td colspan="7" style="text-align:right;font-weight:bold;">TOTAL:</td>
+      <td><b>${totalHours.toFixed(2)}</b></td>
+      <td><b>${totalDays.toFixed(2)}</b></td>
+    </tr>
+  </table>
+  <div style="margin-top:10px; font-size:1.15em;">
+    <b>Total Time Required (all skills):</b>
+    <span style="color:#317;">${totalHours.toFixed(2)} hours</span> &nbsp;|&nbsp; 
+    <span style="color:#317;">${totalDays.toFixed(2)} days</span>
+  </div>`;
+
+  resultDiv.innerHTML = `
+    <b>To reach your goals, you must chop <span style="color:#195;">${logsToCut.toLocaleString()} ${logType} logs</span>.
+    This will get you to your Fletching and Firemaking targets, and your Woodcutting level will go from <b>${wcCurrentLevel}</b> to <b>${wcFinalLevel}</b>!</b>
+    ${wcGoalResult ? "<br>"+wcGoalResult : ""}
+    `;
+  tableDiv.innerHTML = html;
+}
+
+
+</script>
+</body>
+</html>
