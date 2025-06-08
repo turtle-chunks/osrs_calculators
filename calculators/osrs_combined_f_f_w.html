@@ -359,6 +359,77 @@ function calculateUltimatePlanner() {
 }
 
 
+
+function isEmptyOrNaN(value) {
+  return value === '' || isNaN(parseInt(value));
+}
+
+function calculateOnlyWoodcuttingIfNeeded() {
+  const fletchXp = document.getElementById("planner_fletchXp").value;
+  const fmXp = document.getElementById("planner_fmXp").value;
+  const wcXp = parseInt(document.getElementById("planner_wcXp").value);
+  const wcLvl = parseInt(document.getElementById("planner_wcLvl").value);
+  const wcAxe = document.getElementById("planner_wcAxe").value;
+  const logType = document.getElementById("planner_logType").value;
+  const resultDiv = document.getElementById("planner_result");
+  const tableDiv = document.getElementById("planner_table");
+
+  if (!isEmptyOrNaN(fletchXp) || !isEmptyOrNaN(fmXp)) {
+    return; // Skip fallback if either fletching or firemaking has data
+  }
+
+  if (isNaN(wcXp) || isNaN(wcLvl) || !(logType in logXpPerLog)) {
+    return;
+  }
+
+  const currentLevel = getLevelFromXP(wcXp);
+  const neededXp = levelXpTable[wcLvl] - wcXp;
+  if (neededXp <= 0) {
+    resultDiv.innerHTML = "<b>You have already reached or surpassed your Woodcutting goal!</b>";
+    tableDiv.innerHTML = "";
+    return;
+  }
+
+  const xpPerLog = logXpPerLog[logType];
+  const logsNeeded = Math.ceil(neededXp / xpPerLog);
+  const bracketIdx = getAxeBracketIdx(currentLevel);
+  const logsPerMin = axeLogsPerMinute[logType]?.[wcAxe]?.[bracketIdx] || 0;
+  const xpPerHour = logsPerMin * 60 * xpPerLog;
+  const hours = xpPerHour > 0 ? neededXp / xpPerHour : 0;
+  const days = hours / 24;
+
+  let html = `<table>
+    <tr>
+      <th>Skill</th>
+      <th>Log Type</th>
+      <th>XP per Log</th>
+      <th>Logs Needed</th>
+      <th>Total XP</th>
+      <th>Level After</th>
+      <th>XP/Hour</th>
+      <th>Hours</th>
+      <th>Days</th>
+    </tr>
+    <tr>
+      <td>Woodcutting (${wcAxe})</td>
+      <td>${logType}</td>
+      <td>${xpPerLog}</td>
+      <td>${logsNeeded.toLocaleString()}</td>
+      <td>${neededXp.toLocaleString()}</td>
+      <td>${wcLvl} (was ${currentLevel})</td>
+      <td>${Math.round(xpPerHour).toLocaleString()}</td>
+      <td>${hours.toFixed(2)}</td>
+      <td>${days.toFixed(2)}</td>
+    </tr>
+  </table>`;
+
+  resultDiv.innerHTML = `<b>Woodcutting Only:</b><br>To reach level ${wcLvl} from level ${currentLevel}, you need <b>${neededXp.toLocaleString()} XP</b>,
+    which is about <b>${logsNeeded.toLocaleString()} logs</b>.<br>This will take approximately <b>${hours.toFixed(2)} hours</b> (${days.toFixed(2)} days) using a ${wcAxe} axe.`;
+  tableDiv.innerHTML = html;
+}
+
+document.querySelector("button[onclick='calculateUltimatePlanner()']").addEventListener("click", calculateOnlyWoodcuttingIfNeeded);
+
 </script>
 </body>
 </html>
