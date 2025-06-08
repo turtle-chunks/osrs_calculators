@@ -216,50 +216,49 @@ function calculateUltimatePlanner() {
   const resultDiv = document.getElementById("planner_result");
   const tableDiv = document.getElementById("planner_table");
 
-  if (isNaN(fletchXp) || isNaN(fletchLvl) || isNaN(fmXp) || isNaN(fmLvl) || isNaN(wcXp)) {
-    resultDiv.textContent = "Please fill in all XP and level fields.";
+  if (isNaN(wcXp)) {
+    resultDiv.textContent = "Please enter your current Woodcutting XP.";
     tableDiv.innerHTML = "";
     return;
   }
+
   if (!(logType in logXpPerLog)) {
     resultDiv.textContent = "Invalid log type.";
     tableDiv.innerHTML = "";
     return;
   }
-  if (!levelXpTable[fletchLvl] || !levelXpTable[fmLvl]) {
-    resultDiv.textContent = "Invalid target levels.";
-    tableDiv.innerHTML = "";
-    return;
+
+  let fletchHours = 0, fletchDays = 0, fletchLogsNeeded = 0, fletchXpPerBow = 0, fletchBow = '';
+  if (!isNaN(fletchXp) && !isNaN(fletchLvl) && levelXpTable[fletchLvl]) {
+    let bowNameList = Object.keys(itemXp).filter(name =>
+      name.toLowerCase().includes(logType.toLowerCase())
+      && name.toLowerCase().includes(fletchBowType)
+      && (fletchMode === "unstrung" ? name.includes("(u)") : !name.includes("(u)"))
+    );
+    if (bowNameList.length > 0) {
+      fletchBow = bowNameList[0];
+      const [xpPerBow, secondsPerBow] = itemXp[fletchBow];
+      fletchXpPerBow = xpPerBow;
+      const fletchNeededXp = levelXpTable[fletchLvl] - fletchXp;
+      fletchLogsNeeded = fletchNeededXp > 0 ? Math.ceil(fletchNeededXp / xpPerBow) : 0;
+      const fletchXpPerHour = xpPerBow / secondsPerBow * 3600;
+      fletchHours = fletchXpPerHour > 0 ? fletchNeededXp / fletchXpPerHour : 0;
+      fletchDays = fletchHours / 24;
+    }
   }
 
-  let bowString = logType.charAt(0).toUpperCase() + logType.slice(1).toLowerCase() + " " + fletchBowType;
-  let bowNameList = Object.keys(itemXp).filter(name =>
-    name.toLowerCase().includes(logType.toLowerCase())
-    && name.toLowerCase().includes(fletchBowType)
-    && (fletchMode === "unstrung" ? name.includes("(u)") : !name.includes("(u)"))
-  );
-  if (bowNameList.length === 0) {
-    resultDiv.textContent = `No ${fletchMode} ${fletchBowType} available for ${logType}!`;
-    tableDiv.innerHTML = "";
-    return;
+  let fmHours = 0, fmDays = 0, fmLogsNeeded = 0, fmXpPerLog = 0;
+  if (!isNaN(fmXp) && !isNaN(fmLvl) && logsXp[logType] && levelXpTable[fmLvl]) {
+    fmXpPerLog = logsXp[logType];
+    const fmNeededXp = levelXpTable[fmLvl] - fmXp;
+    fmLogsNeeded = fmNeededXp > 0 ? Math.ceil(fmNeededXp / fmXpPerLog) : 0;
+    const secondsPerLog = fmMode === "bonfires" ? 5.4 : 3.0;
+    const fmXpPerHour = fmXpPerLog / secondsPerLog * 3600;
+    fmHours = fmXpPerHour > 0 ? fmNeededXp / fmXpPerHour : 0;
+    fmDays = fmHours / 24;
   }
-  const fletchBow = bowNameList[0];
-  const [fletchXpPerBow, fletchSecondsPerBow] = itemXp[fletchBow];
-  const fletchNeededXp = levelXpTable[fletchLvl] - fletchXp;
-  const fletchLogsNeeded = fletchNeededXp > 0 ? Math.ceil(fletchNeededXp / fletchXpPerBow) : 0;
-  const fletchXpPerHour = fletchXpPerBow / fletchSecondsPerBow * 3600;
-  const fletchHours = fletchXpPerHour > 0 ? fletchNeededXp / fletchXpPerHour : 0;
-  const fletchDays = fletchHours / 24;
 
-  const fmXpPerLog = logsXp[logType];
-  const fmNeededXp = levelXpTable[fmLvl] - fmXp;
-  const fmLogsNeeded = fmNeededXp > 0 ? Math.ceil(fmNeededXp / fmXpPerLog) : 0;
-  const secondsPerLog = fmMode === "bonfires" ? 5.4 : 3.0;
-  const fmXpPerHour = fmXpPerLog / secondsPerLog * 3600;
-  const fmHours = fmXpPerHour > 0 ? fmNeededXp / fmXpPerHour : 0;
-  const fmDays = fmHours / 24;
-
-  const logsToCut = Math.max(fletchLogsNeeded, fmLogsNeeded);
+  const logsToCut = Math.max(fletchLogsNeeded || 0, fmLogsNeeded || 0);
   const wcXpPerLog = logXpPerLog[logType];
   const wcCurrentLevel = getLevelFromXP(wcXp);
   const bracketIdx = getAxeBracketIdx(wcCurrentLevel);
@@ -279,11 +278,10 @@ function calculateUltimatePlanner() {
     if (wcFinalXp >= wcGoalXp) {
       wcGoalResult = `<span style="color:#070;">You will reach your Woodcutting goal!</span>`;
     } else {
-      wcGoalResult = `<span style="color:#900;">You will be ${wcGoalXp-wcFinalXp} XP short of level ${wcLvl}.</span>`;
+      wcGoalResult = `<span style="color:#900;">You will be ${wcGoalXp - wcFinalXp} XP short of level ${wcLvl}.</span>`;
     }
   }
 
-  // Calculate totals (sum of all hours/days)
   const totalHours = fletchHours + fmHours + wcHours;
   const totalDays = fletchDays + fmDays + wcDays;
 
@@ -298,8 +296,11 @@ function calculateUltimatePlanner() {
       <th>XP/Hour</th>
       <th>Hours</th>
       <th>Days</th>
-    </tr>
-    <tr>
+    </tr>`;
+
+  if (fletchLogsNeeded > 0 && fletchBow) {
+    const fletchXpPerHour = fletchXpPerBow / itemXp[fletchBow][1] * 3600;
+    html += `<tr>
       <td>Fletching (${fletchBow})</td>
       <td>${logType}</td>
       <td>${fletchXpPerBow}</td>
@@ -309,8 +310,12 @@ function calculateUltimatePlanner() {
       <td>${Math.round(fletchXpPerHour).toLocaleString()}</td>
       <td>${fletchHours.toFixed(2)}</td>
       <td>${fletchDays.toFixed(2)}</td>
-    </tr>
-    <tr>
+    </tr>`;
+  }
+
+  if (fmLogsNeeded > 0 && fmXpPerLog > 0) {
+    const fmXpPerHour = fmXpPerLog / (fmMode === "bonfires" ? 5.4 : 3.0) * 3600;
+    html += `<tr>
       <td>Firemaking (${fmMode})</td>
       <td>${logType}</td>
       <td>${fmXpPerLog}</td>
@@ -320,23 +325,25 @@ function calculateUltimatePlanner() {
       <td>${Math.round(fmXpPerHour).toLocaleString()}</td>
       <td>${fmHours.toFixed(2)}</td>
       <td>${fmDays.toFixed(2)}</td>
-    </tr>
-    <tr style="font-weight:bold;background:#eef;">
-      <td>Woodcutting (${wcAxe})</td>
-      <td>${logType}</td>
-      <td>${wcXpPerLog}</td>
-      <td>${logsToCut.toLocaleString()} <small>(max of above)</small></td>
-      <td>${wcNeededXp.toLocaleString()}</td>
-      <td>${wcFinalLevel} (was ${wcCurrentLevel})</td>
-      <td>${Math.round(wcXpPerHour).toLocaleString()}</td>
-      <td>${wcHours.toFixed(2)}</td>
-      <td>${wcDays.toFixed(2)}</td>
-    </tr>
-    <tr style="background:#f7f7ff;">
-      <td colspan="7" style="text-align:right;font-weight:bold;">TOTAL:</td>
-      <td><b>${totalHours.toFixed(2)}</b></td>
-      <td><b>${totalDays.toFixed(2)}</b></td>
-    </tr>
+    </tr>`;
+  }
+
+  html += `<tr style="font-weight:bold;background:#eef;">
+    <td>Woodcutting (${wcAxe})</td>
+    <td>${logType}</td>
+    <td>${wcXpPerLog}</td>
+    <td>${logsToCut.toLocaleString()} <small>(max of above)</small></td>
+    <td>${wcNeededXp.toLocaleString()}</td>
+    <td>${wcFinalLevel} (was ${wcCurrentLevel})</td>
+    <td>${Math.round(wcXpPerHour).toLocaleString()}</td>
+    <td>${wcHours.toFixed(2)}</td>
+    <td>${wcDays.toFixed(2)}</td>
+  </tr>
+  <tr style="background:#f7f7ff;">
+    <td colspan="7" style="text-align:right;font-weight:bold;">TOTAL:</td>
+    <td><b>${totalHours.toFixed(2)}</b></td>
+    <td><b>${totalDays.toFixed(2)}</b></td>
+  </tr>
   </table>
   <div style="margin-top:10px; font-size:1.15em;">
     <b>Total Time Required (all skills):</b>
@@ -346,9 +353,8 @@ function calculateUltimatePlanner() {
 
   resultDiv.innerHTML = `
     <b>To reach your goals, you must chop <span style="color:#195;">${logsToCut.toLocaleString()} ${logType} logs</span>.
-    This will get you to your Fletching and Firemaking targets, and your Woodcutting level will go from <b>${wcCurrentLevel}</b> to <b>${wcFinalLevel}</b>!</b>
-    ${wcGoalResult ? "<br>"+wcGoalResult : ""}
-    `;
+    This will get you to your ${fletchLogsNeeded ? "Fletching, " : ""}${fmLogsNeeded ? "Firemaking, " : ""}and Woodcutting targets!</b>
+    ${wcGoalResult ? "<br>" + wcGoalResult : ""}`;
   tableDiv.innerHTML = html;
 }
 
