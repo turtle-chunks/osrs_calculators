@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mithril Dragon Drop Calculator</title>
+  <link href="../jspsych/jspsych.css" rel="stylesheet" type="text/css"/>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      background: url('../imgs/old-school-runescape-map.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+    #jspsych-target { position: relative; height: 100%; }
+    .instruction-dialog {
+      background-color: rgba(255,255,255,0.96);
+      padding: 22px 30px;
+      border-radius: 13px;
+      max-width: 950px;
+      margin: 36px auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.22);
+    }
+    .side-image { width: 190px; height: auto; }
+    .left-image { transform: scaleX(-1); margin-right: 22px; }
+    .right-image { margin-left: 22px; }
+    .instruction-content { font-size: 1.12em; text-align: center; color: #000; }
+    .item-entry {
+      display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px;
+    }
+    .item-label {
+      display: flex; align-items: center; gap: 7px; min-width: 200px; text-align: right; justify-content: flex-end;
+    }
+    .item-icon { width: 32px; height: 32px; object-fit: contain; background: #f7f8fc; border-radius: 7px; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    .results-table th, .results-table td {
+      border: 1px solid #bbb;
+      padding: 6px;
+      font-size: 0.95em;
+    }
+    .results-table th { background: #eee; }
+    .section-title {
+      font-weight: 600;
+      margin: 24px 0 6px 0;
+      background: #f0f6fc;
+      padding: 4px 0;
+      border-radius: 4px;
+      text-align: center;
+    }
+  </style>
+  <script src="../jspsych/jspsych.js"></script>
+  <script src="../jspsych/plugin-html-keyboard-response.js"></script>
+  <script src="../jspsych/plugin-survey-html-form.js"></script>
+  <script src="../jspsych/plugin-call-function.js"></script>
+  <script>
+    // All drop tables with display name, image file name, internal variable, avg per kill, official rate
+    const mainTable = [
+      ["Dragon bones", "Dragon bones", 1, "Always"],
+      ["Mithril bar", "Mithril bar", 3, "3/1"],
+      ["Rune battleaxe", "Rune battleaxe", 0.0625, "1/16"],
+      ["Rune dart(p)", "Rune dart(p)", 0.765445599, "1/18.29"],
+      ["Rune battleaxe (rare)", "Rune battleaxe", 0.03125, "1/32"],
+      ["Rune knife", "Rune knife", 0.187485353, "1/42.67"],
+      ["Rune mace", "Rune mace", 0.023435669, "1/42.67"],
+      ["Rune spear", "Rune spear", 0.015625, "1/64"],
+      ["Rune full helm", "Rune full helm", 0.0078125, "1/128"],
+      ["Dragon full helm", "Dragon full helm", 0.0000305176, "1/32,768"],
+      ["Blood rune", "Blood rune", 4.007718569, "1/6.737"],
+      ["Rune javelin", "Rune javelin", 0.874986328, "1/9.143"],
+      ["Runite bolts", "Runite bolts", 0.703234881, "1/21.33"],
+      ["Soul rune", "Soul rune", 0.390625, "1/25.6"],
+      ["Rune arrow", "Rune arrow", 0.187485353, "1/42.67"],
+      ["Shark", "Shark", 0.171882325, "Varies"],
+      ["Prayer mix(2)", "Prayer mix(2)", 0.015625, "1/64"],
+      ["Superattack mix(2)", "Superattack mix(2)", 0.015625, "1/64"],
+      ["Super def. mix(2)", "Super def. mix(2)", 0.015625, "1/64"],
+      ["Super str. mix(2)", "Super str. mix(2)", 0.015625, "1/64"],
+      ["Coins", "Coins", 131.4320507, "Varies"],
+      ["Dragon javelin heads", "Dragon javelin heads", 0.820120284, "1/18.29"],
+      ["Chewed bones", "Chewed bones", 0.023435669, "1/42.67"],
+      ["Runite bar", "Runite bar", 0.046871338, "1/42.67"],
+      ["Ancient page", "Ancient page", 0.015625, "1/64"],
+      ["Brimstone key", "Brimstone key", 0.016666667, "1/60"],
+      ["Clue scroll (elite)", "Clue scroll (elite)", 0.002857143, "1/350"],
+      ["Draconic visage", "Draconic visage", 0.0001, "1/10,000"]
+    ];
+    const rareDropTable = [
+      ["Nature rune", "Nature rune", 0.012268815, "1/5,461"],
+      ["Law rune", "Law rune", 0.005493164, "1/8,192"],
+      ["Death rune", "Death rune", 0.005493164, "1/8,192"],
+      ["Steel arrow", "Steel arrow", 0.018310547, "1/8,192"],
+      ["Rune arrow (rare)", "Rune arrow", 0.005126953, "1/8,192"],
+      ["Adamant javelin", "Adamant javelin", 0.002441406, "1/8,192"],
+      ["Rune battleaxe (very rare)", "Rune battleaxe", 0.000183117, "1/5,461"],
+      ["Rune 2h sword", "Rune 2h sword", 0.000183117, "1/5,461"],
+      ["Rune sq shield", "Rune sq shield", 0.00012207, "1/8,192"],
+      ["Rune kiteshield", "Rune kiteshield", 0.0000610352, "1/16,384"],
+      ["Dragon med helm", "Dragon med helm", 0.0000610352, "1/16,384"],
+      ["Runite bar (rare)", "Runite bar", 0.000305157, "1/3,277"],
+      ["Dragonstone", "Dragonstone", 0.00012207, "1/8,192"],
+      ["Silver ore", "Silver ore", 0.012207031, "1/8,192"]
+    ];
+    const rareGemTable = [
+      ["Uncut sapphire", "Uncut sapphire", 0.008116883, "1/123.2"],
+      ["Uncut emerald", "Uncut emerald", 0.004058442, "1/246.4"],
+      ["Uncut ruby", "Uncut ruby", 0.002029221, "1/492.8"],
+      ["Loop half of key", "Loop half of key", 0.001474274, "1/678.3"],
+      ["Tooth half of key", "Tooth half of key", 0.001474274, "1/678.3"],
+      ["Nature talisman", "Nature talisman", 0.000761035, "1/1,314"],
+      ["Uncut diamond", "Uncut diamond", 0.000507357, "1/1,971"],
+      ["Rune javelin (gem)", "Rune javelin", 0.001268392, "1/3,942"],
+      ["Rune spear (gem)", "Rune spear", 0.0000730727, "1/13,685"],
+      ["Shield left half (gem)", "Shield left half", 0.0000365377, "1/27,369"],
+      ["Dragon spear (gem)", "Dragon spear", 0.0000274033, "1/36,492"]
+    ];
+    const rareGemTableROW = [
+      ["Uncut sapphire (ROW)", "Uncut sapphire", 0.015974441, "1/62.6"],
+      ["Uncut emerald (ROW)", "Uncut emerald", 0.008, "1/125"],
+      ["Uncut ruby (ROW)", "Uncut ruby", 0.004, "1/250"],
+      ["Loop half of key (ROW)", "Loop half of key", 0.00172117, "1/581"],
+      ["Tooth half of key (ROW)", "Tooth half of key", 0.00172117, "1/581"],
+      ["Nature talisman (ROW)", "Nature talisman", 0.00149925, "1/667"],
+      ["Uncut diamond (ROW)", "Uncut diamond", 0.000999001, "1/1,001"],
+      ["Rune javelin (ROW)", "Rune javelin", 0.002497502, "1/2,002"],
+      ["Rune spear (ROW)", "Rune spear", 0.000754717, "1/1,325"],
+      ["Shield left half (ROW)", "Shield left half", 0.000377358, "1/2,650"],
+      ["Dragon spear (ROW)", "Dragon spear", 0.000283046, "1/3,533"]
+    ];
+
+    // Flatten input list with section names for html form
+    function buildInputSection(section, title) {
+      return `
+        <div class="section-title">${title}</div>
+        ${section.map(([disp, icon]) => `
+          <div class="item-entry">
+            <span class="item-label">
+              <img class="item-icon" src="../imgs/${icon}.png" alt="${disp}">${disp}:
+            </span>
+            <input name="${disp}" type="number" step="1" min="0" placeholder="0" style="width:100px;">
+          </div>
+        `).join('')}
+      `;
+    }
+
+    // Create the dialog with ROW checkbox
+    function createInstructionDialog(content) {
+      return `
+        <div style="display: flex; align-items: center; justify-content: center;">
+          <img class="side-image left-image" src="../imgs/Mithril dragon.png" alt="Mithril dragon">
+          <div class="instruction-dialog"><div class="instruction-content">${content}</div></div>
+          <img class="side-image right-image" src="../imgs/Mithril dragon.png" alt="Mithril dragon">
+        </div>
+      `;
+    }
+
+    const jsPsych = initJsPsych();
+
+    // Build survey HTML
+    function buildSurveyHtml() {
+      return `
+        <p><strong>Welcome to the Mithril Dragon Drop Calculator.</strong></p>
+        <p>Enter your <b>overall kills</b> and <b>how many of each item</b> you obtained.</p>
+        <div class="item-entry" style="justify-content:center;">
+          <label for="kills" style="font-weight:600;min-width:130px;">Overall Kills:</label>
+          <input name="kills" id="kills" type="number" step="1" min="1" placeholder="e.g. 2000" required style="width:120px;">
+        </div>
+        <div style="margin:12px 0 22px 0;">
+          <input type="checkbox" id="row" name="row" style="transform:scale(1.2); vertical-align:middle;">
+          <label for="row" style="font-weight:600; font-size:1.09em;">Ring of Wealth equipped</label>
+        </div>
+        ${buildInputSection(mainTable, "Main Drops")}
+        ${buildInputSection(rareDropTable, "Rare Drop Table")}
+        <div id="gem-section"></div>
+        <script>
+          // Dynamically show correct rare gem table
+          function updateGemSection() {
+            var checked = document.getElementById('row').checked;
+            var html = '';
+            if(checked) {
+              html = \`${buildInputSection(rareGemTableROW, "Rare Gem Table (ROW)")}\`;
+            } else {
+              html = \`${buildInputSection(rareGemTable, "Rare Gem Table")}\`;
+            }
+            document.getElementById('gem-section').innerHTML = html;
+          }
+          document.getElementById('row').addEventListener('change', updateGemSection);
+          window.onload = updateGemSection;
+        </script>
+      `;
+    }
+
+    let calculationResults = null;
+    const combined_input_trial = {
+      type: jsPsychSurveyHtmlForm,
+      html: createInstructionDialog(buildSurveyHtml()),
+      button_label: 'Submit',
+      on_load: () => {
+        // Setup the gem table update
+        function updateGemSection() {
+          var checked = document.getElementById('row').checked;
+          var html = '';
+          if(checked) {
+            html = buildInputSection(rareGemTableROW, "Rare Gem Table (ROW)");
+          } else {
+            html = buildInputSection(rareGemTable, "Rare Gem Table");
+          }
+          document.getElementById('gem-section').innerHTML = html;
+        }
+        document.getElementById('row').addEventListener('change', updateGemSection);
+        updateGemSection();
+      }
+    };
+
+    // Calculation and feedback logic
+    const calculate_trial = {
+      type: jsPsychCallFunction,
+      func: () => {
+        const raw = jsPsych.data.get().last(1).values()[0].response;
+        const kills = Number(raw.kills);
+        if (!kills || kills <= 0) {
+          calculationResults = { error: 'Please enter a valid positive number of kills.' };
+          return;
+        }
+        const rowEquipped = !!raw.row;
+        // Utility to process each section for results table
+        function processTable(section) {
+          return section.map(([disp, icon, avgDrop, offRate]) => {
+            const count = Number(raw[disp] || 0);
+            if (isNaN(count) || count === 0) return null;
+            const dropRate = count / kills;
+            const perDrop = count > 0 ? kills / count : Infinity;
+            const rel = avgDrop > 0 ? dropRate / avgDrop : "-";
+            let cmp = '-';
+            if (avgDrop > 0) {
+              cmp = (rel > 1) ? `${((rel-1)*100).toFixed(1)}% ↑` :
+                    (rel < 1) ? `${((1-rel)*100).toFixed(1)}% ↓` : "Exact";
+            }
+            return `
+              <tr>
+                <td><span class="item-label"><img class="item-icon" src="../imgs/${icon}.png" alt="${disp}">${disp}</span></td>
+                <td>${count}</td>
+                <td>${dropRate.toFixed(4)}</td>
+                <td>${perDrop === Infinity ? '∞' : perDrop.toFixed(2)}</td>
+                <td>${cmp}</td>
+                <td>${offRate}</td>
+              </tr>
+            `;
+          }).filter(Boolean).join('');
+        }
+        // Always show main and rare drop, then gem table per ROW
+        calculationResults = {
+          main: processTable(mainTable),
+          rare: processTable(rareDropTable),
+          gem: rowEquipped ? processTable(rareGemTableROW) : processTable(rareGemTable),
+          rowEquipped
+        };
+      }
+    };
+
+    const feedback_trial = {
+      type: jsPsychHtmlKeyboardResponse,
+      choices: [],
+      stimulus: () => {
+        if (calculationResults.error) {
+          return createInstructionDialog(`<p>${calculationResults.error}</p><p><strong>To restart, please press F5 on your keyboard.</strong></p>`);
+        }
+        function section(title, rows) {
+          if (!rows) return '';
+          return `<div class="section-title">${title}</div>
+                  <table class="results-table">
+                    <tr><th>Item</th><th>Drop Count</th><th>Your Drop Rate</th><th>Kills per Item</th><th>Relative Rate</th><th>Official Rate</th></tr>
+                    ${rows}
+                  </table>`;
+        }
+        return createInstructionDialog(`
+          <p><strong>Your results for Mithril dragon:</strong></p>
+          ${section("Main Drops", calculationResults.main)}
+          ${section("Rare Drop Table", calculationResults.rare)}
+          ${section(calculationResults.rowEquipped ? "Rare Gem Table (ROW)" : "Rare Gem Table", calculationResults.gem)}
+          <div style="margin-top: 20px;">
+            <button onclick="window.location.reload()" style="padding:10px 30px;font-size:1em;">Reset</button>
+          </div>
+        `);
+      }
+    };
+
+    jsPsych.run([combined_input_trial, calculate_trial, feedback_trial], {
+      display_element: document.getElementById('jspsych-target')
+    });
+  </script>
+</head>
+<body>
+  <div id="jspsych-target"></div>
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="../skill-pets.html" style="margin-right: 20px; padding: 10px 20px; background: #e0e0e0; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">⬅ Back to Category</a>
+    <a href="../index.html" style="padding: 10px 20px; background: #fdd835; border: 1px solid #000; border-radius: 8px; text-decoration: none; font-size: 1em;">🏠 Home</a>
+  </div>
+</body>
+</html>
